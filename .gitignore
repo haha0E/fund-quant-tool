@@ -1,0 +1,16 @@
+# 密钥与本地环境
+.env
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# 本地工具产物
+.video_agent/
