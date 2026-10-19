@@ -14,3 +14,12 @@ __pycache__/
 
 # 本地工具产物
 .video_agent/
+
+# 应用运行时数据（SQLite 库与导入中的快照不入库；data/notes 结论快照入库，可 git diff）
+data/*.db
+data/snapshot/
+
+# Node / 前端
+node_modules/
+frontend/dist/
+*.local
