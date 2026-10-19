@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>组件方案对比 · antd 定制 vs shadcn（假数据）</title>
+<style>html,body{margin:0;padding:0;background:#fff}</style>
+</head>
+<body style="padding:20px;max-width:1200px;margin:0 auto">
+<div id="cmp-root">
+<style>
+  #cmp-root { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+    font-size:14px; color:#18181b; line-height:1.5; text-align:left; }
+  #cmp-root .lucide { width:15px; height:15px; flex:none; }
+  #cmp-root .cp-cap { margin:0 2px 18px; font-size:13px; color:#666; }
+  #cmp-root .cp-sec { margin-bottom:34px; min-width:0; }
+  #cmp-root .cp-bar { display:flex; align-items:baseline; gap:10px; margin:0 2px 10px; flex-wrap:wrap; }
+  #cmp-root .cp-bar b { font-size:15px; font-weight:600; }
+  #cmp-root .cp-bar span { font-size:12.5px; color:#8a8a8a; }
+  #cmp-root .num { font-variant-numeric:tabular-nums; }
+  #cmp-root .up { color:#dc2626; }
+  #cmp-root .down { color:#16a34a; }
+
+  /* ================= 方案 A：antd 复刻 ================= */
+  #cmp-root .fa { color:rgba(0,0,0,.88); --bd:#d9d9d9; --bd2:#f0f0f0; --fill:#fafafa;
+    --txt:rgba(0,0,0,.88); --txt2:rgba(0,0,0,.65); --txt3:rgba(0,0,0,.45);
+    --pri:#18181b; --prih:#404046; font-size:14px; }
+  #cmp-root .fa .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  #cmp-root .fa .abtn { display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 15px;
+    border-radius:6px; border:1px solid var(--bd); background:#fff; color:var(--txt); font:inherit; cursor:pointer;
+    box-shadow:0 2px 0 rgba(0,0,0,.02); white-space:nowrap; }
+  #cmp-root .fa .abtn:hover { color:var(--prih); border-color:var(--prih); }
+  #cmp-root .fa .abtn.pri { background:var(--pri); border-color:var(--pri); color:#fff; box-shadow:0 2px 0 rgba(24,24,27,.12); }
+  #cmp-root .fa .abtn.pri:hover { background:var(--prih); color:#fff; }
+  #cmp-root .fa .abtn.txt { border-color:transparent; background:transparent; box-shadow:none; color:var(--txt2); }
+  #cmp-root .fa .abtn.txt:hover { color:#ff4d4f; }
+  #cmp-root .fa .aseg { display:inline-flex; background:rgba(0,0,0,.06); border-radius:6px; padding:2px; }
+  #cmp-root .fa .aseg button { height:26px; padding:0 11px; border:none; border-radius:4px; background:transparent;
+    color:var(--txt2); font:inherit; font-size:13px; cursor:pointer; white-space:nowrap; }
+  #cmp-root .fa .aseg button.on { background:#fff; color:var(--txt); box-shadow:0 1px 2px rgba(0,0,0,.12); }
+  #cmp-root .fa .ainput, #cmp-root .fa .asel { display:inline-flex; align-items:center; gap:8px; height:32px;
+    padding:0 11px; border:1px solid var(--bd); border-radius:6px; background:#fff; white-space:nowrap; }
+  #cmp-root .fa .ainput { min-width:210px; color:var(--txt3); }
+  #cmp-root .fa .ainput .lucide { width:14px; height:14px; color:var(--txt3); }
+  #cmp-root .fa .ainput.focus { border-color:var(--pri); box-shadow:0 0 0 2px rgba(24,24,27,.1); color:var(--txt2); }
+  #cmp-root .fa .asel { min-width:150px; justify-content:space-between; color:var(--txt); }
+  #cmp-root .fa .asel .lucide { width:12px; height:12px; color:rgba(0,0,0,.25); }
+  #cmp-root .fa .acards { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:12px; }
+  #cmp-root .fa .acard { border:1px solid var(--bd2); border-radius:8px; background:#fff; padding:16px 20px; }
+  #cmp-root .fa .ast { font-size:14px; color:var(--txt3); }
+  #cmp-root .fa .asv { font-size:24px; font-weight:500; margin-top:4px; font-variant-numeric:tabular-nums; }
+  #cmp-root .fa .asx { font-size:12.5px; color:var(--txt3); margin-top:2px; }
+  #cmp-root .fa table { width:100%; border-collapse:collapse; background:#fff; }
+  #cmp-root .fa th { background:var(--fill); color:var(--txt); font-size:14px; font-weight:500; text-align:left;
+    padding:11px 12px; border-bottom:1px solid var(--bd2); white-space:nowrap; }
+  #cmp-root .fa td { padding:11px 12px; border-bottom:1px solid var(--bd2); font-size:14px; white-space:nowrap; }
+  #cmp-root .fa tbody tr:hover td { background:var(--fill); }
+  #cmp-root .fa .r { text-align:right; }
+  #cmp-root .fa .code { color:var(--txt3); font-size:12.5px; margin-left:6px; }
+  #cmp-root .fa .atag { display:inline-flex; align-items:center; height:22px; padding:0 7px; border-radius:4px;
+    font-size:12px; border:1px solid; white-space:nowrap; }
+  #cmp-root .fa .t-gray { background:#fafafa; border-color:#d9d9d9; color:var(--txt2); }
+  #cmp-root .fa .t-green { background:#f6ffed; border-color:#b7eb8f; color:#389e0d; }
+  #cmp-root .fa .t-blue { background:#f0f5ff; border-color:#adc6ff; color:#2f54eb; }
+  #cmp-root .fa .t-orange { background:#fff7e6; border-color:#ffd591; color:#d46b08; }
+  #cmp-root .fa .apagi { display:flex; align-items:center; gap:6px; margin-top:12px; font-size:14px; color:var(--txt2); flex-wrap:wrap; }
+  #cmp-root .fa .ap { min-width:32px; height:32px; display:grid; place-items:center; border:1px solid var(--bd);
+    border-radius:6px; background:#fff; cursor:pointer; padding:0 6px; }
+  #cmp-root .fa .ap.on { background:var(--pri); border-color:var(--pri); color:#fff; }
+  #cmp-root .fa .aps { height:32px; display:inline-flex; align-items:center; gap:6px; padding:0 11px;
+    border:1px solid var(--bd); border-radius:6px; background:#fff; font-size:13px; }
+  #cmp-root .fa .amask { background:#f5f5f5; border-radius:10px; padding:28px; display:grid; place-items:center; }
+  #cmp-root .fa .amodal { width:min(440px,100%); background:#fff; border-radius:8px;
+    box-shadow:0 6px 16px rgba(0,0,0,.08), 0 3px 6px -4px rgba(0,0,0,.12), 0 9px 28px 8px rgba(0,0,0,.05); }
+  #cmp-root .fa .amh { display:flex; align-items:center; justify-content:space-between; padding:16px 20px 8px; }
+  #cmp-root .fa .amh b { font-size:16px; font-weight:600; }
+  #cmp-root .fa .amh .lucide { color:var(--txt3); }
+  #cmp-root .fa .amb { padding:10px 20px 16px; display:grid; gap:10px; }
+  #cmp-root .fa .afld { display:grid; gap:4px; }
+  #cmp-root .fa .afld label { font-size:14px; color:var(--txt); }
+  #cmp-root .fa .afld .ainput, #cmp-root .fa .afld .asel { width:100%; min-width:0; }
+  #cmp-root .fa .afld .ainput.hasval { color:var(--txt); }
+  #cmp-root .fa .amf { display:flex; justify-content:flex-end; gap:8px; padding:10px 16px 16px; }
+
+  /* ================= 方案 B：shadcn ================= */
+  #cmp-root .fs { --bd:#e4e4e7; --muted:#f4f4f5; --fg:#09090b; --fg2:#71717a;
+    --pri:#18181b; --prif:#fafafa; color:var(--fg); font-size:13.5px; }
+  #cmp-root .fs .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  #cmp-root .fs .sbtn { display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 14px;
+    border-radius:8px; border:1px solid var(--bd); background:var(--muted); color:var(--fg); font:inherit; cursor:pointer;
+    white-space:nowrap; }
+  #cmp-root .fs .sbtn:hover { background:#ececee; }
+  #cmp-root .fs .sbtn.pri { background:var(--pri); border-color:var(--pri); color:var(--prif); }
+  #cmp-root .fs .sbtn.pri:hover { opacity:.88; background:var(--pri); }
+  #cmp-root .fs .sbtn.ghost { background:transparent; }
+  #cmp-root .fs .sbtn.ghost:hover { background:var(--muted); }
+  #cmp-root .fs .sseg { display:inline-flex; gap:2px; padding:2px; border:1px solid var(--bd); border-radius:8px; background:var(--muted); }
+  #cmp-root .fs .sseg button { height:24px; padding:0 10px; border:1px solid transparent; border-radius:6px;
+    background:transparent; color:var(--fg2); font:inherit; font-size:12.5px; cursor:pointer; white-space:nowrap; }
+  #cmp-root .fs .sseg button.on { background:#fff; border-color:var(--bd); color:var(--fg); }
+  #cmp-root .fs .sinp, #cmp-root .fs .ssel { display:inline-flex; align-items:center; gap:8px; height:34px;
+    padding:0 11px; border:1px solid var(--bd); border-radius:8px; background:#fff; white-space:nowrap; }
+  #cmp-root .fs .sinp { min-width:210px; color:var(--fg2); }
+  #cmp-root .fs .sinp .lucide { width:14px; height:14px; color:var(--fg2); }
+  #cmp-root .fs .sinp.focus { border-color:#18181b; box-shadow:0 0 0 3px rgba(24,24,27,.08); color:var(--fg); }
+  #cmp-root .fs .ssel { min-width:150px; justify-content:space-between; color:var(--fg); }
+  #cmp-root .fs .ssel .lucide { width:14px; height:14px; color:var(--fg2); }
+  #cmp-root .fs .scards { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:12px; }
+  #cmp-root .fs .scard { border:1px solid var(--bd); border-radius:10px; background:#fff; padding:16px 18px; }
+  #cmp-root .fs .sst { font-size:12px; color:var(--fg2); }
+  #cmp-root .fs .ssv { font-size:22px; font-weight:600; margin:6px 0 4px; font-variant-numeric:tabular-nums; }
+  #cmp-root .fs .ssx { font-size:12px; color:var(--fg2); }
+  #cmp-root .fs .stwrap { border:1px solid var(--bd); border-radius:10px; background:#fff; overflow-x:auto; }
+  #cmp-root .fs table { width:100%; border-collapse:collapse; min-width:640px; }
+  #cmp-root .fs th { text-align:left; font-size:11.5px; font-weight:500; color:var(--fg2);
+    padding:10px 12px; border-bottom:1px solid var(--bd); white-space:nowrap; }
+  #cmp-root .fs td { padding:10px 12px; border-bottom:1px solid var(--bd); white-space:nowrap; }
+  #cmp-root .fs tbody tr:last-child td { border-bottom:none; }
+  #cmp-root .fs tbody tr:hover td { background:var(--muted); }
+  #cmp-root .fs .r { text-align:right; }
+  #cmp-root .fs .code { color:var(--fg2); font-size:11.5px; margin-left:6px; }
+  #cmp-root .fs .stag { display:inline-flex; align-items:center; height:20px; padding:0 8px; border-radius:6px;
+    font-size:11.5px; white-space:nowrap; }
+  #cmp-root .fs .t-out { border:1px solid var(--bd); color:var(--fg); }
+  #cmp-root .fs .t-mut { background:var(--muted); color:var(--fg2); }
+  #cmp-root .fs .t-dash { border:1px dashed var(--bd); color:var(--fg2); }
+  #cmp-root .fs .spagi { display:flex; align-items:center; gap:4px; margin-top:12px; font-size:13px; color:var(--fg2); flex-wrap:wrap; }
+  #cmp-root .fs .sp { min-width:32px; height:32px; display:grid; place-items:center; border:1px solid transparent;
+    border-radius:6px; background:transparent; cursor:pointer; padding:0 6px; }
+  #cmp-root .fs .sp:hover { background:var(--muted); }
+  #cmp-root .fs .sp.on { background:var(--muted); border-color:var(--bd); color:var(--fg); }
+  #cmp-root .fs .smask { background:#fafafa; border-radius:10px; padding:28px; display:grid; place-items:center; }
+  #cmp-root .fs .smodal { width:min(440px,100%); background:#fff; border:1px solid var(--bd); border-radius:12px;
+    box-shadow:0 10px 28px rgba(0,0,0,.10); }
+  #cmp-root .fs .smh { display:flex; align-items:center; justify-content:space-between; padding:18px 20px 0; }
+  #cmp-root .fs .smh b { font-size:16.5px; font-weight:600; }
+  #cmp-root .fs .smh .lucide { color:var(--fg2); }
+  #cmp-root .fs .smb { padding:8px 20px 16px; display:grid; gap:12px; }
+  #cmp-root .fs .sfld { display:grid; gap:6px; }
+  #cmp-root .fs .sfld label { font-size:12.5px; font-weight:500; color:var(--fg); }
+  #cmp-root .fs .sfld .sinp, #cmp-root .fs .sfld .ssel { width:100%; min-width:0; }
+  #cmp-root .fs .sfld .sinp.hasval { color:var(--fg); }
+  #cmp-root .fs .smf { display:flex; justify-content:flex-end; gap:8px; padding:0 16px 16px; }
+
+  /* ================= primary 演示 ================= */
+  #cmp-root .pd-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; }
+  #cmp-root .pd-col { border:1px solid #e4e4e7; border-radius:10px; background:#fff; padding:14px; }
+  #cmp-root .pd-h { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#09090b; margin-bottom:12px; }
+  #cmp-root .pd-h i.dot { width:12px; height:12px; border-radius:4px; display:inline-block; }
+  #cmp-root .pd-h span { font-weight:400; color:#71717a; font-size:11.5px; }
+  #cmp-root .pd-item { font-size:11.5px; color:#71717a; margin:10px 0 4px; }
+  #cmp-root .pd-btn { display:inline-flex; align-items:center; height:32px; padding:0 13px; border-radius:8px;
+    border:1px solid transparent; color:#fff; font-size:13px; }
+  #cmp-root .pd-inp { display:flex; align-items:center; height:34px; padding:0 11px; border-radius:8px;
+    background:#fff; font-size:13px; color:#09090b; }
+  #cmp-root .pd-bars { display:flex; align-items:flex-end; gap:4px; height:28px; }
+  #cmp-root .pd-bars i { display:block; width:10px; border-radius:2px; }
+  #cmp-root input.pd-ck { width:16px; height:16px; }
+</style>
+
+<p class="cp-cap">同一份假数据、同一套页面区块，只换组件方案，均为亮色 · 紧凑基调。对比点：表格、表单控件、按钮、弹窗、分页、标签气质。</p>
+
+<!-- ========== 方案 A ========== -->
+<section class="cp-sec fa">
+  <div class="cp-bar"><b>方案 A · Ant Design 6</b><span>token 深度定制（近黑主色 / 中性边框 / 紧凑）· 手写复刻，代表其可达上限</span></div>
+
+  <div class="row">
+    <button class="abtn pri"><i data-lucide="plus" aria-hidden="true"></i>基金入池</button>
+    <button class="abtn">导出</button>
+    <button class="abtn txt">移出</button>
+    <div class="aseg" style="margin-left:8px;">
+      <button class="on" type="button">全部</button><button type="button">持仓</button><button type="button">研究池</button><button type="button">观察中</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <span class="ainput"><i data-lucide="search" aria-hidden="true"></i>搜索基金 / 代码</span>
+    <span class="asel">全部类型 <i data-lucide="chevron-down" aria-hidden="true"></i></span>
+    <span class="asel">所属池 <i data-lucide="chevron-down" aria-hidden="true"></i></span>
+    <span class="ainput focus">005827 <i data-lucide="search" aria-hidden="true" style="margin-left:auto"></i></span>
+  </div>
+
+  <div class="acards">
+    <div class="acard"><div class="ast">持仓基金</div><div class="asv">4 只</div><div class="asx">较上季 +1</div></div>
+    <div class="acard"><div class="ast">组合近一年</div><div class="asv up">+12.36%</div><div class="asx">+1.8pt vs 沪深300</div></div>
+    <div class="acard"><div class="ast">组合最大回撤</div><div class="asv down">-15.82%</div><div class="asx">近一年区间</div></div>
+  </div>
+
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr><th>基金</th><th>类型</th><th>池</th><th class="r">最新净值</th><th class="r">近1年</th><th class="r">最大回撤</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>易方达蓝筹精选混合<span class="code">005827.OF</span></td><td><span class="atag t-gray">混合型</span></td><td><span class="atag t-green">持仓</span></td><td class="r num">1.8920</td><td class="r num up">+15.42%</td><td class="r num down">-21.30%</td></tr>
+        <tr><td>华泰柏瑞沪深300ETF<span class="code">510300.SH</span></td><td><span class="atag t-gray">股票指数</span></td><td><span class="atag t-green">持仓</span></td><td class="r num">4.0210</td><td class="r num up">+11.20%</td><td class="r num down">-12.64%</td></tr>
+        <tr><td>广发纳指ETF<span class="code">513100.QDII</span></td><td><span class="atag t-gray">股票指数</span></td><td><span class="atag t-blue">研究池</span></td><td class="r num">1.9620</td><td class="r num up">+28.31%</td><td class="r num down">-10.92%</td></tr>
+        <tr><td>中欧医疗健康混合A<span class="code">003095.OF</span></td><td><span class="atag t-gray">混合型</span></td><td><span class="atag t-blue">研究池</span></td><td class="r num">1.8455</td><td class="r num down">-8.74%</td><td class="r num down">-34.20%</td></tr>
+        <tr><td>易方达裕丰回报债券<span class="code">000712.OF</span></td><td><span class="atag t-gray">债券型</span></td><td><span class="atag t-orange">观察中</span></td><td class="r num">1.4780</td><td class="r num up">+4.02%</td><td class="r num down">-3.41%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="apagi">
+    <span class="ap">«</span><span class="ap">‹</span><span class="ap on">1</span><span class="ap">2</span><span class="ap">3</span><span class="ap">›</span><span class="ap">»</span>
+    <span class="aps">10 条/页 <i data-lucide="chevron-down" aria-hidden="true" style="width:11px;height:11px;color:rgba(0,0,0,.25)"></i></span>
+    <span style="font-size:13px;color:rgba(0,0,0,.45)">共 23 条</span>
+  </div>
+
+  <div style="height:12px"></div>
+  <div class="amask">
+    <div class="amodal" role="group" aria-label="antd 风格弹窗示例">
+      <div class="amh"><b>基金入池</b><i data-lucide="x" aria-hidden="true"></i></div>
+      <div class="amb">
+        <div class="afld"><label>基金代码</label><span class="ainput hasval">005827</span></div>
+        <div class="afld"><label>所属池</label><span class="asel">研究池 <i data-lucide="chevron-down" aria-hidden="true"></i></span></div>
+      </div>
+      <div class="amf"><button class="abtn">取消</button><button class="abtn pri">确认入池</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 方案 B ========== -->
+<section class="cp-sec fs">
+  <div class="cp-bar"><b>方案 B · Tailwind v4 + shadcn/ui</b><span>原生样式 · 同数据</span></div>
+
+  <div class="row">
+    <button class="sbtn pri"><i data-lucide="plus" aria-hidden="true"></i>基金入池</button>
+    <button class="sbtn">导出</button>
+    <button class="sbtn ghost">移出</button>
+    <div class="sseg" style="margin-left:8px;">
+      <button class="on" type="button">全部</button><button type="button">持仓</button><button type="button">研究池</button><button type="button">观察中</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <span class="sinp"><i data-lucide="search" aria-hidden="true"></i>搜索基金 / 代码</span>
+    <span class="ssel">全部类型 <i data-lucide="chevron-down" aria-hidden="true"></i></span>
+    <span class="ssel">所属池 <i data-lucide="chevron-down" aria-hidden="true"></i></span>
+    <span class="sinp focus">005827 <i data-lucide="search" aria-hidden="true" style="margin-left:auto"></i></span>
+  </div>
+
+  <div class="scards">
+    <div class="scard"><div class="sst">持仓基金</div><div class="ssv">4 只</div><div class="ssx">较上季 +1</div></div>
+    <div class="scard"><div class="sst">组合近一年</div><div class="ssv up">+12.36%</div><div class="ssx">+1.8pt vs 沪深300</div></div>
+    <div class="scard"><div class="sst">组合最大回撤</div><div class="ssv down">-15.82%</div><div class="ssx">近一年区间</div></div>
+  </div>
+
+  <div class="stwrap">
+    <table>
+      <thead>
+        <tr><th>基金</th><th>类型</th><th>池</th><th class="r">最新净值</th><th class="r">近1年</th><th class="r">最大回撤</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>易方达蓝筹精选混合<span class="code">005827.OF</span></td><td><span class="stag t-mut">混合型</span></td><td><span class="stag t-out">持仓</span></td><td class="r num">1.8920</td><td class="r num up">+15.42%</td><td class="r num down">-21.30%</td></tr>
+        <tr><td>华泰柏瑞沪深300ETF<span class="code">510300.SH</span></td><td><span class="stag t-mut">股票指数</span></td><td><span class="stag t-out">持仓</span></td><td class="r num">4.0210</td><td class="r num up">+11.20%</td><td class="r num down">-12.64%</td></tr>
+        <tr><td>广发纳指ETF<span class="code">513100.QDII</span></td><td><span class="stag t-mut">股票指数</span></td><td><span class="stag t-mut">研究池</span></td><td class="r num">1.9620</td><td class="r num up">+28.31%</td><td class="r num down">-10.92%</td></tr>
+        <tr><td>中欧医疗健康混合A<span class="code">003095.OF</span></td><td><span class="stag t-mut">混合型</span></td><td><span class="stag t-mut">研究池</span></td><td class="r num">1.8455</td><td class="r num down">-8.74%</td><td class="r num down">-34.20%</td></tr>
+        <tr><td>易方达裕丰回报债券<span class="code">000712.OF</span></td><td><span class="stag t-mut">债券型</span></td><td><span class="stag t-dash">观察中</span></td><td class="r num">1.4780</td><td class="r num up">+4.02%</td><td class="r num down">-3.41%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="spagi">
+    <span class="sp">«</span><span class="sp">‹</span><span class="sp on">1</span><span class="sp">2</span><span class="sp">3</span><span class="sp">›</span><span class="sp">»</span>
+    <span style="margin-left:8px;">共 23 条</span>
+  </div>
+
+  <div style="height:12px"></div>
+  <div class="smask">
+    <div class="smodal" role="group" aria-label="shadcn 风格弹窗示例">
+      <div class="smh"><b>基金入池</b><i data-lucide="x" aria-hidden="true"></i></div>
+      <div class="smb">
+        <div class="sfld"><label>基金代码</label><span class="sinp hasval">005827</span></div>
+        <div class="sfld"><label>所属池</label><span class="ssel">研究池 <i data-lucide="chevron-down" aria-hidden="true"></i></span></div>
+      </div>
+      <div class="smf"><button class="sbtn">取消</button><button class="sbtn pri">确认入池</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== primary 演示 ========== -->
+<section class="cp-sec">
+  <div class="cp-bar"><b>primary 到底涂在哪</b><span>四个候选 · 同一组位置并排看（主按钮 / 选中复选 / 输入框聚焦 / 图表主色）</span></div>
+  <div class="pd-grid">
+    <div class="pd-col">
+      <div class="pd-h"><i class="dot" style="background:#18181b"></i>近黑 <span>#18181B</span></div>
+      <div class="pd-item">主按钮</div><span class="pd-btn" style="background:#18181b">基金入池</span>
+      <div class="pd-item">复选框选中</div><input type="checkbox" class="pd-ck" checked style="accent-color:#18181b">
+      <div class="pd-item">输入框聚焦</div><span class="pd-inp" style="border:1px solid #18181b;box-shadow:0 0 0 3px rgba(24,24,27,.08)">005827</span>
+      <div class="pd-item">图表主序列色</div>
+      <div class="pd-bars"><i style="height:30%;background:#18181b"></i><i style="height:55%;background:#18181b"></i><i style="height:40%;background:#18181b"></i><i style="height:75%;background:#18181b"></i><i style="height:60%;background:#18181b"></i><i style="height:100%;background:#18181b"></i></div>
+    </div>
+    <div class="pd-col">
+      <div class="pd-h"><i class="dot" style="background:#0f766e"></i>深青 <span>#0F766E</span></div>
+      <div class="pd-item">主按钮</div><span class="pd-btn" style="background:#0f766e">基金入池</span>
+      <div class="pd-item">复选框选中</div><input type="checkbox" class="pd-ck" checked style="accent-color:#0f766e">
+      <div class="pd-item">输入框聚焦</div><span class="pd-inp" style="border:1px solid #0f766e;box-shadow:0 0 0 3px rgba(15,118,110,.12)">005827</span>
+      <div class="pd-item">图表主序列色</div>
+      <div class="pd-bars"><i style="height:30%;background:#0f766e"></i><i style="height:55%;background:#0f766e"></i><i style="height:40%;background:#0f766e"></i><i style="height:75%;background:#0f766e"></i><i style="height:60%;background:#0f766e"></i><i style="height:100%;background:#0f766e"></i></div>
+    </div>
+    <div class="pd-col">
+      <div class="pd-h"><i class="dot" style="background:#4f46e5"></i>靛蓝 <span>#4F46E5</span></div>
+      <div class="pd-item">主按钮</div><span class="pd-btn" style="background:#4f46e5">基金入池</span>
+      <div class="pd-item">复选框选中</div><input type="checkbox" class="pd-ck" checked style="accent-color:#4f46e5">
+      <div class="pd-item">输入框聚焦</div><span class="pd-inp" style="border:1px solid #4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.12)">005827</span>
+      <div class="pd-item">图表主序列色</div>
+      <div class="pd-bars"><i style="height:30%;background:#4f46e5"></i><i style="height:55%;background:#4f46e5"></i><i style="height:40%;background:#4f46e5"></i><i style="height:75%;background:#4f46e5"></i><i style="height:60%;background:#4f46e5"></i><i style="height:100%;background:#4f46e5"></i></div>
+    </div>
+    <div class="pd-col">
+      <div class="pd-h"><i class="dot" style="background:#047857"></i>翡翠绿 <span>#047857</span></div>
+      <div class="pd-item">主按钮</div><span class="pd-btn" style="background:#047857">基金入池</span>
+      <div class="pd-item">复选框选中</div><input type="checkbox" class="pd-ck" checked style="accent-color:#047857">
+      <div class="pd-item">输入框聚焦</div><span class="pd-inp" style="border:1px solid #047857;box-shadow:0 0 0 3px rgba(4,120,87,.12)">005827</span>
+      <div class="pd-item">图表主序列色</div>
+      <div class="pd-bars"><i style="height:30%;background:#047857"></i><i style="height:55%;background:#047857"></i><i style="height:40%;background:#047857"></i><i style="height:75%;background:#047857"></i><i style="height:60%;background:#047857"></i><i style="height:100%;background:#047857"></i></div>
+    </div>
+  </div>
+  <p style="margin:10px 2px 0;font-size:12.5px;color:#8a8a8a">注：近黑方案下，界面的彩色只留给「红涨绿跌」语义；彩色 primary 则全站这些位置整体带色。</p>
+</section>
+</div>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>if(window.lucide){lucide.createIcons({attrs:{width:15,height:15}});}</script>
+</body>
+</html>
