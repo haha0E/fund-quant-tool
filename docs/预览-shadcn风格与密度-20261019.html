@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>基金研究工作台 · 风格与密度预览（假数据）</title>
+<style>html,body{margin:0;padding:0}</style>
+</head>
+<body>
+<div id="fw-preview" class="fw">
+<style>
+  #fw-preview { --bg:#ffffff; --side:#fafafa; --surface:#ffffff; --fg:#09090b; --fg2:#71717a;
+    --border:#e4e4e7; --muted:#f4f4f5; --hover:#f4f4f5; --primary:#18181b; --primary-fg:#fafafa;
+    --up:#dc2626; --down:#16a34a; --up-bg:rgba(220,38,38,.08); --down-bg:rgba(22,163,74,.10);
+    --ringc:rgba(24,24,27,.35);
+    --row-h:52px; --cell-px:14px; --ctrl-h:36px; --card-p:18px; --gap:18px; --pad:24px; --fs:13px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+    font-size:var(--fs); color:var(--fg); background:var(--bg); line-height:1.5; }
+  #fw-preview.dark { --bg:#09090b; --side:#0e0e10; --surface:#111113; --fg:#fafafa; --fg2:#a1a1aa;
+    --border:#27272a; --muted:#1b1b1f; --hover:#1d1d21; --primary:#fafafa; --primary-fg:#18181b;
+    --up:#f87171; --down:#4ade80; --up-bg:rgba(248,113,113,.12); --down-bg:rgba(74,222,128,.12);
+    --ringc:rgba(250,250,250,.4); }
+  #fw-preview.d-compact { --row-h:36px; --cell-px:10px; --ctrl-h:28px; --card-p:12px; --gap:12px; --pad:16px; --fs:12.5px; }
+  #fw-preview .lucide { width:15px; height:15px; flex:none; }
+  #fw-preview .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  #fw-preview :focus-visible { outline:2px solid var(--ringc); outline-offset:2px; border-radius:4px; }
+
+  #fw-preview .fp-shell { display:flex; align-items:stretch; width:100%; min-width:0; text-align:left; }
+
+  /* ---- 侧栏 ---- */
+  #fw-preview .fp-side { width:228px; flex:none; background:var(--side); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; padding:12px 10px; gap:4px; }
+  #fw-preview .fp-brand { display:flex; align-items:center; gap:9px; padding:6px 8px 16px; }
+  #fw-preview .fp-logo { width:26px; height:26px; flex:none; border-radius:7px; background:var(--primary); color:var(--primary-fg);
+    display:grid; place-items:center; }
+  #fw-preview .fp-logo .lucide { width:14px; height:14px; }
+  #fw-preview .fp-brand-t { font-size:13.5px; font-weight:600; letter-spacing:.2px; white-space:nowrap; }
+  #fw-preview .fp-nav-g { font-size:11.5px; color:var(--fg2); padding:12px 10px 4px; white-space:nowrap; }
+  #fw-preview .fp-nav-i { display:flex; align-items:center; gap:9px; height:33px; padding:0 10px; border-radius:7px;
+    color:var(--fg2); text-decoration:none; white-space:nowrap; }
+  #fw-preview .fp-nav-i:hover { background:var(--hover); color:var(--fg); }
+  #fw-preview .fp-nav-i.active { background:var(--muted); color:var(--fg); font-weight:500; }
+  #fw-preview .fp-side-f { margin-top:auto; padding:10px 4px 2px; display:flex; flex-direction:column; gap:6px; }
+  #fw-preview .fp-meta { display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--fg2); padding:0 8px; white-space:nowrap; }
+  #fw-preview .fp-meta .lucide { width:13px; height:13px; }
+  #fw-preview .fp-collapse { justify-content:center; }
+
+  /* ---- 主区 ---- */
+  #fw-preview .fp-main { flex:1; min-width:0; display:flex; flex-direction:column; background:var(--bg); }
+  #fw-preview .fp-head { display:flex; align-items:center; gap:14px; padding:0 var(--pad); height:54px;
+    border-bottom:1px solid var(--border); flex-wrap:nowrap; }
+  #fw-preview .fp-crumb { font-size:12.5px; color:var(--fg2); white-space:nowrap; }
+  #fw-preview .fp-crumb b { color:var(--fg); font-weight:500; }
+  #fw-preview .fp-crumb .sep { margin:0 6px; opacity:.6; }
+  #fw-preview .fp-head-r { margin-left:auto; display:flex; align-items:center; gap:8px; }
+  #fw-preview .fp-search { position:relative; }
+  #fw-preview .fp-search .lucide { position:absolute; left:8px; top:50%; transform:translateY(-50%); width:14px; height:14px; color:var(--fg2); }
+  #fw-preview .fp-search input { height:var(--ctrl-h); width:190px; padding:0 10px 0 28px; border:1px solid var(--border);
+    border-radius:8px; background:var(--surface); color:var(--fg); font:inherit; }
+  #fw-preview .fp-search input::placeholder { color:var(--fg2); }
+
+  /* ---- 分段开关（主题 / 密度）---- */
+  #fw-preview .fp-seg { display:inline-flex; gap:2px; padding:2px; border:1px solid var(--border); border-radius:8px; background:var(--muted); }
+  #fw-preview .fp-seg button { display:inline-flex; align-items:center; gap:5px; height:24px; padding:0 9px; border:1px solid transparent;
+    border-radius:6px; background:transparent; color:var(--fg2); font:inherit; font-size:12px; cursor:pointer; white-space:nowrap; }
+  #fw-preview .fp-seg button .lucide { width:13px; height:13px; }
+  #fw-preview .fp-seg button[aria-pressed="true"] { background:var(--surface); border-color:var(--border); color:var(--fg); }
+
+  /* ---- 内容 ---- */
+  #fw-preview .fp-body { padding:var(--pad); min-width:0; }
+  #fw-preview .fp-title { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:var(--gap); flex-wrap:wrap; }
+  #fw-preview .fp-title h1 { font-size:20px; font-weight:600; margin:0; }
+  #fw-preview .fp-sub { margin:3px 0 0; font-size:12.5px; color:var(--fg2); }
+  #fw-preview .fp-btn { display:inline-flex; align-items:center; gap:6px; height:var(--ctrl-h); padding:0 14px;
+    border-radius:8px; border:1px solid var(--border); background:var(--muted); color:var(--fg); font:inherit; cursor:pointer; white-space:nowrap; }
+  #fw-preview .fp-btn:hover { background:var(--hover); }
+  #fw-preview .fp-btn.primary { background:var(--primary); border-color:var(--primary); color:var(--primary-fg); }
+  #fw-preview .fp-btn.primary:hover { opacity:.88; background:var(--primary); }
+
+  /* ---- KPI 卡 ---- */
+  #fw-preview .fp-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:var(--gap); margin-bottom:var(--gap); }
+  #fw-preview .fp-kpi { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:var(--card-p); min-width:0; }
+  #fw-preview .fp-kpi-l { font-size:12px; color:var(--fg2); }
+  #fw-preview .fp-kpi-v { font-size:22px; font-weight:600; font-variant-numeric:tabular-nums; margin:6px 0 6px; }
+  #fw-preview .fp-delta { display:inline-flex; align-items:center; gap:4px; height:20px; padding:0 7px; border-radius:6px;
+    font-size:11.5px; font-variant-numeric:tabular-nums; }
+  #fw-preview .fp-delta .lucide { width:12px; height:12px; }
+  #fw-preview .fp-delta.up { color:var(--up); background:var(--up-bg); }
+  #fw-preview .fp-delta.down { color:var(--down); background:var(--down-bg); }
+  #fw-preview .fp-delta.flat { color:var(--fg2); background:var(--muted); }
+
+  /* ---- 工具栏 ---- */
+  #fw-preview .fp-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:var(--gap); }
+  #fw-preview .fp-sel { position:relative; }
+  #fw-preview .fp-sel select { appearance:none; -webkit-appearance:none; height:var(--ctrl-h); padding:0 28px 0 10px;
+    border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--fg); font:inherit; cursor:pointer; }
+  #fw-preview .fp-sel .lucide { position:absolute; right:8px; top:50%; transform:translateY(-50%); width:14px; height:14px; color:var(--fg2); pointer-events:none; }
+  #fw-preview .fp-btn.ghost { background:transparent; }
+  #fw-preview .fp-btn.ghost:hover { background:var(--hover); }
+
+  /* ---- 表格 ---- */
+  #fw-preview .fp-tablewrap { border:1px solid var(--border); border-radius:10px; background:var(--surface); overflow-x:auto; min-width:0; }
+  #fw-preview table.fp-table { width:100%; border-collapse:collapse; font-size:var(--fs); min-width:860px; }
+  #fw-preview .fp-table th { text-align:left; font-size:11.5px; font-weight:500; color:var(--fg2);
+    padding:9px var(--cell-px); border-bottom:1px solid var(--border); white-space:nowrap; }
+  #fw-preview .fp-table td { height:var(--row-h); padding:6px var(--cell-px); border-bottom:1px solid var(--border); vertical-align:middle; white-space:nowrap; }
+  #fw-preview .fp-table tbody tr:last-child td { border-bottom:none; }
+  #fw-preview .fp-table tbody tr:hover td { background:var(--hover); }
+  #fw-preview .fp-r, #fw-preview th.fp-r { text-align:right; }
+  #fw-preview .fp-num { font-variant-numeric:tabular-nums; }
+  #fw-preview .fp-fund b { display:block; font-weight:500; }
+  #fw-preview .fp-fund .code { color:var(--fg2); font-size:11.5px; font-variant-numeric:tabular-nums; }
+  #fw-preview.d-compact .fp-fund b, #fw-preview.d-compact .fp-fund .code { display:inline; }
+  #fw-preview.d-compact .fp-fund .code { margin-left:6px; }
+  #fw-preview .fp-up { color:var(--up); }
+  #fw-preview .fp-down { color:var(--down); }
+  #fw-preview .fp-tag { display:inline-flex; align-items:center; height:20px; padding:0 8px; border-radius:6px; font-size:11.5px; white-space:nowrap; }
+  #fw-preview .fp-tag.type { background:var(--muted); color:var(--fg2); }
+  #fw-preview .fp-tag.pool { border:1px solid var(--border); color:var(--fg); }
+  #fw-preview .fp-tag.watch { border:1px dashed var(--border); color:var(--fg2); }
+  #fw-preview .spark { width:84px; height:26px; display:block; }
+  #fw-preview .spark polyline { fill:none; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+  #fw-preview .spark.up polyline { stroke:var(--up); }
+  #fw-preview .spark.down polyline { stroke:var(--down); }
+  #fw-preview .fp-act { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px;
+    border:none; border-radius:7px; background:transparent; color:var(--fg2); cursor:pointer; }
+  #fw-preview .fp-act:hover { background:var(--muted); color:var(--fg); }
+  #fw-preview .fp-note { margin:12px 2px 0; font-size:12px; color:var(--fg2); }
+
+  /* ---- 折叠态 ---- */
+  #fw-preview.collapsed .fp-side { width:56px; padding:12px 8px; }
+  #fw-preview.collapsed .fp-brand { justify-content:center; padding-left:0; padding-right:0; }
+  #fw-preview.collapsed .fp-brand-t, #fw-preview.collapsed .fp-nav-g,
+  #fw-preview.collapsed .fp-nav-i span, #fw-preview.collapsed .fp-meta span { display:none; }
+  #fw-preview.collapsed .fp-nav-i { justify-content:center; padding:0; }
+  #fw-preview.collapsed .fp-meta { justify-content:center; padding:0; }
+  #fw-preview.collapsed .fp-collapse .ic-l { display:none; }
+  #fw-preview .fp-collapse .ic-r { display:none; }
+  #fw-preview.collapsed .fp-collapse .ic-r { display:block; }
+  @media (max-width:880px) {
+    #fw-preview .fp-side { width:56px; padding:12px 8px; }
+    #fw-preview .fp-brand { justify-content:center; }
+    #fw-preview .fp-brand-t, #fw-preview .fp-nav-g,
+    #fw-preview .fp-nav-i span, #fw-preview .fp-meta span { display:none; }
+    #fw-preview .fp-nav-i { justify-content:center; padding:0; }
+    #fw-preview .fp-search input { width:130px; }
+    #fw-preview .fp-seg button span { display:none; }
+  }
+</style>
+
+<div class="fp-shell">
+  <aside class="fp-side">
+    <div class="fp-brand">
+      <span class="fp-logo"><i data-lucide="trending-up" aria-hidden="true"></i></span>
+      <span class="fp-brand-t">基金研究工作台</span>
+    </div>
+    <nav aria-label="主导航">
+      <div class="fp-nav-g">研究</div>
+      <a class="fp-nav-i" href="#dashboard"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>仪表盘</span></a>
+      <a class="fp-nav-i active" href="#library" aria-current="page"><i data-lucide="library" aria-hidden="true"></i><span>画像库</span></a>
+      <a class="fp-nav-i" href="#domain"><i data-lucide="compass" aria-hidden="true"></i><span>领域探索</span></a>
+      <div class="fp-nav-g">分析</div>
+      <a class="fp-nav-i" href="#portfolio"><i data-lucide="pie-chart" aria-hidden="true"></i><span>组合评估</span></a>
+      <a class="fp-nav-i" href="#overlap"><i data-lucide="share-2" aria-hidden="true"></i><span>穿透分析</span></a>
+    </nav>
+    <div class="fp-side-f">
+      <div class="fp-meta"><i data-lucide="database" aria-hidden="true"></i><span>天天基金 · 净值截至 10-17</span></div>
+      <button type="button" class="fp-btn ghost fp-collapse" aria-label="折叠侧栏" style="height:28px;padding:0 8px;">
+        <i data-lucide="chevrons-left" class="ic-l" aria-hidden="true"></i>
+        <i data-lucide="chevrons-right" class="ic-r" aria-hidden="true"></i>
+      </button>
+    </div>
+  </aside>
+
+  <div class="fp-main">
+    <header class="fp-head">
+      <div class="fp-crumb">工作台 <span class="sep">/</span> <b>画像库</b></div>
+      <div class="fp-head-r">
+        <div class="fp-search">
+          <i data-lucide="search" aria-hidden="true"></i>
+          <input type="search" placeholder="搜索基金 / 代码" aria-label="搜索基金或代码">
+        </div>
+        <div class="fp-seg" role="group" aria-label="主题切换" data-key="theme">
+          <button type="button" data-opt="light" aria-pressed="true"><i data-lucide="sun" aria-hidden="true"></i><span>亮色</span></button>
+          <button type="button" data-opt="dark" aria-pressed="false"><i data-lucide="moon" aria-hidden="true"></i><span>暗色</span></button>
+        </div>
+        <div class="fp-seg" role="group" aria-label="信息密度切换" data-key="density">
+          <button type="button" data-opt="comfy" aria-pressed="true"><span>舒适</span></button>
+          <button type="button" data-opt="compact" aria-pressed="false"><span>紧凑</span></button>
+        </div>
+      </div>
+    </header>
+
+    <main class="fp-body">
+      <div class="fp-title">
+        <div>
+          <h1>画像库</h1>
+          <p class="fp-sub">持仓、研究池与观察中的基金档案</p>
+        </div>
+        <button type="button" class="fp-btn primary"><i data-lucide="plus" aria-hidden="true"></i>基金入池</button>
+      </div>
+
+      <div class="fp-kpis">
+        <div class="fp-kpi">
+          <div class="fp-kpi-l">持仓基金</div>
+          <div class="fp-kpi-v">4 只</div>
+          <span class="fp-delta flat">较上季 +1</span>
+        </div>
+        <div class="fp-kpi">
+          <div class="fp-kpi-l">研究池</div>
+          <div class="fp-kpi-v">3 只</div>
+          <span class="fp-delta flat">本周新增 2</span>
+        </div>
+        <div class="fp-kpi">
+          <div class="fp-kpi-l">组合近一年</div>
+          <div class="fp-kpi-v fp-up">+12.36%</div>
+          <span class="fp-delta up"><i data-lucide="trending-up" aria-hidden="true"></i>+1.8pt vs 沪深300</span>
+        </div>
+        <div class="fp-kpi">
+          <div class="fp-kpi-l">组合最大回撤</div>
+          <div class="fp-kpi-v fp-down">-15.82%</div>
+          <span class="fp-delta down"><i data-lucide="trending-down" aria-hidden="true"></i>近一年区间</span>
+        </div>
+      </div>
+
+      <div class="fp-toolbar">
+        <label class="fp-sel">
+          <select aria-label="基金类型">
+            <option>全部类型</option><option>混合型</option><option>股票指数</option><option>债券型</option>
+          </select>
+          <i data-lucide="chevron-down" aria-hidden="true"></i>
+        </label>
+        <label class="fp-sel">
+          <select aria-label="所属池">
+            <option>全部池</option><option>持仓</option><option>研究池</option><option>观察中</option>
+          </select>
+          <i data-lucide="chevron-down" aria-hidden="true"></i>
+        </label>
+        <label class="fp-sel">
+          <select aria-label="排序">
+            <option>按近一年</option><option>按近一月</option><option>按最大回撤</option>
+          </select>
+          <i data-lucide="chevron-down" aria-hidden="true"></i>
+        </label>
+        <button type="button" class="fp-btn ghost"><i data-lucide="rotate-ccw" aria-hidden="true"></i>重置</button>
+      </div>
+
+      <div class="fp-tablewrap">
+        <table class="fp-table">
+          <caption class="sr-only">基金画像库列表，演示用假数据</caption>
+          <thead>
+            <tr>
+              <th>基金</th>
+              <th>类型</th>
+              <th>池</th>
+              <th class="fp-r">最新净值</th>
+              <th class="fp-r">近1月</th>
+              <th class="fp-r">近1年</th>
+              <th class="fp-r">最大回撤</th>
+              <th>近1年走势</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="fp-fund"><b>易方达蓝筹精选混合</b><span class="code">005827.OF</span></td>
+              <td><span class="fp-tag type">混合型</span></td>
+              <td><span class="fp-tag pool">持仓</span></td>
+              <td class="fp-r fp-num">1.8920</td>
+              <td class="fp-r fp-num fp-up">+2.31%</td>
+              <td class="fp-r fp-num fp-up">+15.42%</td>
+              <td class="fp-r fp-num fp-down">-21.30%</td>
+              <td><svg class="spark up" viewBox="0 0 84 26" aria-hidden="true"><polyline points="2,20 12,18 22,21 32,15 42,16 52,11 62,12 72,7 82,5"/></svg></td>
+              <td><button type="button" class="fp-act" aria-label="易方达蓝筹精选混合 更多操作"><i data-lucide="more-horizontal" aria-hidden="true"></i></button></td>
+            </tr>
+            <tr>
+              <td class="fp-fund"><b>富国天惠成长混合</b><span class="code">161005.SZ</span></td>
+              <td><span class="fp-tag type">混合型</span></td>
+              <td><span class="fp-tag pool">持仓</span></td>
+              <td class="fp-r fp-num">2.1050</td>
+              <td class="fp-r fp-num fp-down">-0.86%</td>
+              <td class="fp-r fp-num fp-up">+6.15%</td>
+              <td class="fp-r fp-num fp-down">-16.80%</td>
+              <td><svg class="spark up" viewBox="0 0 84 26" aria-hidden="true"><polyline points="2,16 12,19 22,14 32,15 42,10 52,12 62,8 72,9 82,4"/></svg></td>
+              <td><button type="button" class="fp-act" aria-label="富国天惠成长混合 更多操作"><i data-lucide="more-horizontal" aria-hidden="true"></i></button></td>
+            </tr>
+            <tr>
+              <td class="fp-fund"><b>兴全趋势投资混合</b><span class="code">163402.SZ</span></td>
+              <td><span class="fp-tag type">混合型</span></td>
+              <td><span class="fp-tag pool">持仓</span></td>
+              <td class="fp-r fp-num">0.9842</td>
+              <td class="fp-r fp-num fp-up">+1.12%</td>
+              <td class="fp-r fp-num fp-up">+9.87%</td>
+              <td class="fp-r fp-num fp-down">-14.52%</td>
+              <td><svg class="spark up" viewBox="0 0 84 26" aria-hidden="true"><polyline points="2,21 12,17 22,19 32,13 42,14 52,9 62,11 72,6 82,6"/></svg></td>
+              <td><button type="button" class="fp-act" aria-label="兴全趋势投资混合 更多操作"><i data-lucide="more-horizontal" aria-hidden="true"></i></button></td>
+            </tr>
+            <tr>
+              <td class="fp-fund"><b>华泰柏瑞沪深300ETF</b><span class="code">510300.SH</span></td>
+              <td><span class="fp-tag type">股票指数</span></td>
+              <td><span class="fp-tag pool">持仓</span></td>
+              <td class="fp-r fp-num">4.0210</td>
+              <td class="fp-r fp-num fp-up">+0.54%</td>
+              <td class="fp-r fp-num fp-up">+11.20%</td>
+              <td class="fp-r fp-num fp-down">-12.64%</td>
+              <td><svg class="spark up" viewBox="0 0 84 26" aria-hidden="true"><polyline points="2,18 12,16 22,17 32,12 42,13 52,10 62,7 72,8 82,3"/></svg></td>
+              <td><button type="button" class="fp-act" aria-label="华泰柏瑞沪深300ETF 更多操作"><i data-lucide="more-horizontal" aria-hidden="true"></i></button></td>
+            </tr>
+            <tr>
+              <td class="fp-fund"><b>广发纳指ETF</b><span class="code">513100.QDII</span></td>
+              <td><span class="fp-tag type">股票指数</span></td>
+              <td><span class="fp-tag pool">研究池</span></td>
+              <td class="fp-r fp-num">1.9620</td>
+              <td class="fp-r fp-num fp-up">+4.05%</td>
+              <td class="fp-r fp-num fp-up">+28.31%</td>
+              <td class="fp-r fp-num fp-down">-10.92%</td>
+              <td><svg class="spark up" viewBox="0 0 84 26" aria-hidden="true"><polyline points="2,22 12,19 22,17 32,18 42,12 52,13 62,8 72,6 82,3"/></svg></td>
+              <td><button type="button" class="fp-act" aria-label="广发纳指ETF 更多操作"><i data-lucide="more-horizontal" aria-hidden="true"></i></button></td>
+            </tr>
+            <tr>
+              <td class="fp-fund"><b>中欧医疗健康混合A</b><span class="code">003095.OF</span></td>
+              <td><span class="fp-tag type">混合型</span></td>
+              <td><span class="fp-tag pool">研究池</span></td>
+              <td class="fp-r fp-num">1.8455</td>
+              <td class="fp-r fp-num fp-down">-3.21%</td>
+              <td class="fp-r fp-num fp-down">-8.74%</td>
+              <td class="fp-r fp-num fp-down">-34.20%</td>
+              <td><svg class="spark down" viewBox="0 0 84 26" aria-hidden="true"><polyline points="2,6 12,9 22,7 32,12 42,10 52,15 62,13 72,18 82,20"/></svg></td>
+              <td><button type="button" class="fp-act" aria-label="中欧医疗健康混合A 更多操作"><i data-lucide="more-horizontal" aria-hidden="true"></i></button></td>
+            </tr>
+            <tr>
+              <td class="fp-fund"><b>易方达裕丰回报债券</b><span class="code">000712.OF</span></td>
+              <td><span class="fp-tag type">债券型</span></td>
+              <td><span class="fp-tag watch">观察中</span></td>
+              <td class="fp-r fp-num">1.4780</td>
+              <td class="fp-r fp-num fp-up">+0.31%</td>
+              <td class="fp-r fp-num fp-up">+4.02%</td>
+              <td class="fp-r fp-num fp-down">-3.41%</td>
+              <td><svg class="spark up" viewBox="0 0 84 26" aria-hidden="true"><polyline points="2,20 12,19 22,20 32,18 42,18 52,16 62,16 72,14 82,13"/></svg></td>
+              <td><button type="button" class="fp-act" aria-label="易方达裕丰回报债券 更多操作"><i data-lucide="more-horizontal" aria-hidden="true"></i></button></td>
+            </tr>
+            <tr>
+              <td class="fp-fund"><b>招商产业债债券A</b><span class="code">217022.OF</span></td>
+              <td><span class="fp-tag type">债券型</span></td>
+              <td><span class="fp-tag watch">观察中</span></td>
+              <td class="fp-r fp-num">1.3021</td>
+              <td class="fp-r fp-num fp-up">+0.18%</td>
+              <td class="fp-r fp-num fp-up">+3.15%</td>
+              <td class="fp-r fp-num fp-down">-2.08%</td>
+              <td><svg class="spark up" viewBox="0 0 84 26" aria-hidden="true"><polyline points="2,19 12,20 22,18 32,19 42,17 52,18 62,15 72,16 82,14"/></svg></td>
+              <td><button type="button" class="fp-act" aria-label="招商产业债债券A 更多操作"><i data-lucide="more-horizontal" aria-hidden="true"></i></button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="fp-note">假数据演示（非真实净值）· 风格与密度预览 · 2026-10-19</p>
+      <span class="sr-only" aria-live="polite" id="fw-live"></span>
+    </main>
+  </div>
+</div>
+
+<script>
+(function () {
+  var root = document.getElementById('fw-preview');
+  if (!root) return;
+  var state = { theme: 'light', density: 'comfy', collapsed: false };
+  function readSaved() {
+    try {
+      var ws = window.zcode && window.zcode.widgetState;
+      var pc = ws && ws.privateContent;
+      if (pc && typeof pc === 'object') {
+        if (pc.theme === 'dark' || pc.theme === 'light') state.theme = pc.theme;
+        if (pc.density === 'compact' || pc.density === 'comfy') state.density = pc.density;
+        if (typeof pc.collapsed === 'boolean') state.collapsed = pc.collapsed;
+      }
+    } catch (e) {}
+  }
+  function save() {
+    try {
+      if (window.zcode && window.zcode.setWidgetState) {
+        window.zcode.setWidgetState({ privateContent: state }).catch(function () {});
+      }
+    } catch (e) {}
+  }
+  function apply() {
+    root.classList.toggle('dark', state.theme === 'dark');
+    root.classList.toggle('d-compact', state.density === 'compact');
+    root.classList.toggle('collapsed', state.collapsed);
+    var btns = root.querySelectorAll('.fp-seg [data-opt]');
+    for (var i = 0; i < btns.length; i++) {
+      var b = btns[i];
+      var key = b.closest('.fp-seg').getAttribute('data-key');
+      b.setAttribute('aria-pressed', String(state[key] === b.getAttribute('data-opt')));
+    }
+    var live = document.getElementById('fw-live');
+    if (live) live.textContent = '当前：' + (state.theme === 'dark' ? '暗色' : '亮色') + ' · ' + (state.density === 'compact' ? '紧凑' : '舒适') + (state.collapsed ? ' · 侧栏已折叠' : '');
+  }
+  var btns = root.querySelectorAll('.fp-seg [data-opt]');
+  for (var i = 0; i < btns.length; i++) {
+    (function (b) {
+      b.addEventListener('click', function () {
+        var key = b.closest('.fp-seg').getAttribute('data-key');
+        state[key] = b.getAttribute('data-opt');
+        apply(); save();
+      });
+    })(btns[i]);
+  }
+  var cb = root.querySelector('.fp-collapse');
+  if (cb) cb.addEventListener('click', function () { state.collapsed = !state.collapsed; apply(); save(); });
+  document.addEventListener('zcode:set_globals', function (e) {
+    try {
+      var pc = e.detail && e.detail.globals && e.detail.globals.widgetState && e.detail.globals.widgetState.privateContent;
+      if (pc && typeof pc === 'object') {
+        if (pc.theme === 'dark' || pc.theme === 'light') state.theme = pc.theme;
+        if (pc.density === 'compact' || pc.density === 'comfy') state.density = pc.density;
+        if (typeof pc.collapsed === 'boolean') state.collapsed = pc.collapsed;
+        apply();
+      }
+    } catch (err) {}
+  });
+  readSaved();
+  apply();
+})();
+</script>
+</div>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>if(window.lucide){lucide.createIcons({attrs:{width:15,height:15}});}</script>
+</body>
+</html>
