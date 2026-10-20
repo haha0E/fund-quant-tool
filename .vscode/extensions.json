@@ -1,0 +1,7 @@
+{
+  // F5 跑后端需要这两个扩展（VSCode 会自动弹推荐安装）
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.debugpy"
+  ]
+}

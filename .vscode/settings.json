@@ -1,0 +1,9 @@
+{
+  // Python 解释器固定到仓库根的 uv 虚拟环境（backend 前端共用这一个 venv）
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "python.terminal.activateEnvironment": true,
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.venv": true
+  }
+}
