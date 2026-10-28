@@ -199,6 +199,34 @@ def get_note(code: str):
 
 # ---- M3：预检入池 / 持仓录入 / 结论草稿 ----
 
+# 领域标签推断（保守规则：宁缺毋滥，匹配不上返回空让用户手选；可核对非 LLM）
+# 词表按池内 12 只真实标签反推校验：022364 科技智选推不出（不把"科技"当算力），
+# 161725 白酒→消费、020972 机器人、021030 创新药→医药、004195 中证1000→宽基、012920 QDII。
+_TAG_RULES: list[tuple[str, tuple[str, ...]]] = [
+    ("医药", ("医药", "创新药", "医疗", "生物医", "健康")),
+    ("机器人", ("机器人",)),
+    ("AI算力", ("算力", "人工智能", "半导体", "芯片", "集成电路", "计算机", "光模块")),
+    ("黄金", ("黄金", "贵金属")),
+    ("红利", ("红利", "股息")),
+    ("消费", ("消费", "白酒", "食品饮料")),
+]
+_BROAD_INDEXES = ("沪深300", "中证500", "中证800", "中证1000", "中证A500",
+                  "上证50", "创业板", "科创50", "中证全指", "MSCI中国A50")
+
+
+def _suggest_tags(name: str, fund_type: str | None,
+                  tracked_index: str | None, benchmark: str | None) -> list[str]:
+    hay = f"{name} {tracked_index or ''} {benchmark or ''}"
+    tags = [tag for tag, words in _TAG_RULES if any(w in hay for w in words)]
+    # 宽基只对指数型判（主动型基金的基准常含宽基指数做参照，不等于它是宽基）
+    if "指数" in (fund_type or "") and any(ix in hay for ix in _BROAD_INDEXES):
+        tags.append("宽基")
+    if ("QDII" in (fund_type or "").upper()) or any(
+            w in f"{name} {fund_type or ''}" for w in ("QDII", "全球精选", "海外", "美国")):
+        tags.append("QDII")
+    return tags
+
+
 @router.get("/preflight/{code}", response_model=PreflightOut)
 def preflight(code: str):
     """预检入池（M3）：走 ingest 拉档案+净值算预览，**不入库不写池**。
@@ -243,6 +271,8 @@ def preflight(code: str):
         latest_nav_date=rows[-1]["date"] if rows else None,
         ret_1y=ret_1y, ret_ytd=ret_ytd, integrity_bad=integrity_bad,
         warnings=warnings,
+        suggested_tags=_suggest_tags(name, basic.get("基金类型"),
+                                     basic.get("跟踪标的"), basic.get("业绩比较基准")),
     )
 
 

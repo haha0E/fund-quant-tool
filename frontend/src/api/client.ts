@@ -112,6 +112,7 @@ export interface Preflight {
   ret_ytd: number | null
   integrity_bad: boolean
   warnings: string[]
+  suggested_tags: string[]
 }
 
 export interface StrategyFile {

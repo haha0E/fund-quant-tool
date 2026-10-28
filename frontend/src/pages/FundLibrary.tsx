@@ -31,7 +31,7 @@ import { cn } from '@/lib/utils'
 // 画像库页（FR1）：持仓 + 研究池的录入与领域标签。
 // 2026-10-19 重写：shadcn 风格定稿落地——侧栏工作台 + 紧凑表格 + KPI 卡。
 // M1 骨架只做池管理；净值/收益等指标字段随 M2 摄取层接入后补到表格与详情页。
-const DOMAIN_OPTIONS = ['AI算力', '医药', '黄金', '红利', '消费', 'QDII', '宽基']
+const DOMAIN_OPTIONS = ['AI算力', '医药', '机器人', '黄金', '红利', '消费', 'QDII', '宽基']
 
 function pct(v: number | null | undefined): string {
   if (v == null) return '—'
@@ -97,6 +97,7 @@ function AddFundDialog({ open, onOpenChange, onDone }: {
       setPreview(p)
       setManualMode(false)
       if (p.name) setValue('name', p.name)
+      if (p.suggested_tags.length > 0) setValue('domainTags', p.suggested_tags.join(' '))
     } catch (e) {
       toast.error(`预检失败：${(e as Error).message}`)
       toast.info('可点「跳过预检手动录入」继续')
@@ -202,6 +203,14 @@ function AddFundDialog({ open, onOpenChange, onDone }: {
                 <span>YTD <span className={cn('font-medium tabular-nums', preview.ret_ytd != null && toneClass(preview.ret_ytd))}>{pct(preview.ret_ytd)}</span></span>
                 <span className="text-muted-foreground">净值截至 {preview.latest_nav_date ?? '—'}</span>
               </div>
+              {preview.suggested_tags.length > 0 && (
+                <div className="mt-0.5 flex flex-wrap items-center gap-1.5 border-t pt-1.5">
+                  <span className="text-[11px] text-muted-foreground">建议标签（已自动填入，可调整）：</span>
+                  {preview.suggested_tags.map(t => (
+                    <Badge key={t} variant="secondary" className="text-[11px]">{t}</Badge>
+                  ))}
+                </div>
+              )}
               {preview.warnings.map(w => (
                 <p key={w} className="text-[11px] text-amber-600 dark:text-amber-400">{w}</p>
               ))}
@@ -235,7 +244,13 @@ function AddFundDialog({ open, onOpenChange, onDone }: {
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="fund-tags">领域标签</Label>
-                <Input id="fund-tags" placeholder="空格或逗号分隔，如：AI算力 黄金" {...register('domainTags')} />
+                {/* 受控绑定：register 非受控时预检建议标签不落输入框 DOM */}
+                <Input
+                  id="fund-tags"
+                  value={watch('domainTags') ?? ''}
+                  onChange={e => setValue('domainTags', e.target.value)}
+                  placeholder="空格或逗号分隔，如：AI算力 黄金"
+                />
                 <div className="flex flex-wrap gap-1.5 pt-0.5">
                   {DOMAIN_OPTIONS.map(tag => (
                     <button
@@ -386,7 +401,8 @@ export default function FundLibrary() {
     const q = query.trim()
     return funds.filter(f =>
       (pool === 'all' || f.pool_type === pool)
-      && (!q || f.name.includes(q) || f.code.includes(q)),
+      && (!q || f.name.includes(q) || f.code.includes(q)
+        || f.domain_tags.some(t => t.includes(q))),
     )
   }, [funds, pool, query])
 

@@ -132,6 +132,7 @@ class PreflightOut(BaseModel):
     ret_ytd: float | None = None
     integrity_bad: bool = False        # 差值负向漂移（110005 先例）→ 收益不采信
     warnings: list[str] = []
+    suggested_tags: list[str] = []     # 领域标签推断（保守关键词规则，可核对）
 
 
 # ---- M3：结论自动草稿 ----
