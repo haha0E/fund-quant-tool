@@ -9,7 +9,7 @@ from ..ingest import refresh as refresh_mod
 
 router = APIRouter(prefix="/api/refresh", tags=["refresh"])
 
-_SCOPES = ("nav", "profile", "holdings", "metrics", "all")
+_SCOPES = ("nav", "profile", "holdings", "metrics", "index", "all")
 
 
 @router.post("")

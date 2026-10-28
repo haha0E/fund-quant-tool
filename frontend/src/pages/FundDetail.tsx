@@ -3,13 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom'
 import dayjs from 'dayjs'
 import { toast } from 'sonner'
 import {
-  ArrowLeft, CircleHelp, Database, RefreshCw, Save,
+  ArrowLeft, CircleHelp, Database, PenLine, RefreshCw, Save, Trash2,
 } from 'lucide-react'
-import { api, METRIC_TOOLTIPS, type FundDetail as Detail } from '@/api/client'
+import { api, METRIC_TOOLTIPS, type FundDetailWithPosition as Detail } from '@/api/client'
 import { EChart } from '@/components/EChart'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -45,7 +47,7 @@ function toneClass(v: number | null | undefined): string {
   return v > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
 }
 
-/* ---------- 图表：窗内分红重构回撤（§6-3，与后端口径一致） ---------- */
+/* ---------- 图表：回撤序列（§6-3，与后端口径一致） ---------- */
 
 function buildChartOption(detail: Detail, win: Window) {
   const nav = detail.nav
@@ -65,9 +67,21 @@ function buildChartOption(detail: Detail, win: Window) {
   const dates = slice.map(p => p.date)
   const unit = slice.map(p => p.unit_nav)
 
-  // 窗内累计分红重构 → 回撤序列
+  // 回撤序列（窗内重构）：
+  // - 短窗（≤1 年）：单位 + 窗内累计分红（现金口径，§6-3 与指标表同口径）；
+  // - 全部长窗：分红再投复权（因子 f(t)=f(t-1)×(1+div(t)/unit(t))，修现金累加对
+  //   多年多次分红的常数阻尼——HANDOFF M3 顺手项）。
+  const longWindow = win === 'all' && dayjs(last).diff(dayjs(slice[0].date), 'day') > 365
   let cum = 0
-  const adj = slice.map(p => { cum += p.dividend; return p.unit_nav + cum })
+  let factor = 1
+  const adj = slice.map(p => {
+    if (longWindow) {
+      factor *= 1 + (p.dividend || 0) / p.unit_nav
+      return p.unit_nav * factor
+    }
+    cum += p.dividend
+    return p.unit_nav + cum
+  })
   let peak = -Infinity
   const dd = adj.map(v => { peak = Math.max(peak, v); return +(v / peak - 1).toFixed(6) })
 
@@ -194,6 +208,9 @@ export default function FundDetail() {
   const [win, setWin] = useState<Window>('1y')
   const [noteDraft, setNoteDraft] = useState<string | null>(null)
   const [savingNote, setSavingNote] = useState(false)
+  const [drafting, setDrafting] = useState(false)
+  const [sharesInput, setSharesInput] = useState('')
+  const [savingShares, setSavingShares] = useState(false)
 
   const reload = useCallback(async () => {
     setLoading(true)
@@ -201,6 +218,7 @@ export default function FundDetail() {
       const d = await api.getFundDetail(code)
       setDetail(d)
       setNoteDraft(null)
+      setSharesInput(d.position?.shares != null ? String(d.position.shares) : '')
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
@@ -239,6 +257,47 @@ export default function FundDetail() {
       toast.error((e as Error).message)
     } finally {
       setSavingNote(false)
+    }
+  }
+
+  const genDraft = async () => {
+    setDrafting(true)
+    try {
+      const { draft } = await api.noteDraft(code)
+      setNoteDraft(draft)
+      toast.info('草稿已填入（模板生成，未保存）——请修订后手动保存')
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setDrafting(false)
+    }
+  }
+
+  const saveShares = async () => {
+    const shares = parseFloat(sharesInput)
+    if (!Number.isFinite(shares) || shares <= 0) {
+      toast.error('份额须为正数')
+      return
+    }
+    setSavingShares(true)
+    try {
+      const pos = await api.savePosition(code, shares)
+      toast.success(`持仓已保存：市值快照 ${pos.market_value?.toLocaleString()} 元 @ ${pos.value_as_of}`)
+      await reload()
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setSavingShares(false)
+    }
+  }
+
+  const clearShares = async () => {
+    try {
+      await api.clearPosition(code)
+      toast.success('持仓记录已清除')
+      await reload()
+    } catch (e) {
+      toast.error((e as Error).message)
     }
   }
 
@@ -332,7 +391,8 @@ export default function FundDetail() {
           ? <EChart option={chartOption} height={340} />
           : <div className="grid h-40 place-items-center text-sm text-muted-foreground">净值未摄取，点右上「刷新数据」拉取</div>}
         <p className="text-[11px] leading-relaxed text-muted-foreground">
-          回撤按「单位净值+窗内累计分红」重构后取 running max 最深跌幅（切窗口即时重算，与指标表同口径）；
+          回撤按窗口重构后取 running max 最深跌幅：短窗（≤1 年）用「单位净值+窗内累计分红」（现金口径，
+          与指标表同口径）；全部长窗改分红再投复权序列（修多年多次分红的常数阻尼）。切窗口即时重算；
           橙色标记为分红事件（每份现金）。累计净值仅作分红核对常数，不入图（§6 口径）。
         </p>
       </Card>
@@ -403,11 +463,62 @@ export default function FundDetail() {
         </Card>
       </div>
 
+      {/* 持仓份额（M3：组合评估默认权重 = 份额×最新净值） */}
+      {detail.pool_type === 'holding' && (
+        <Card className="gap-3 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-sm font-medium">持仓份额</div>
+            {detail.position && (
+              <span className="text-[11px] text-muted-foreground tabular-nums">
+                更新于 {detail.position.updated_at.slice(0, 16)}
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="grid w-44 gap-1.5">
+              <Label htmlFor="pos-shares">份额（份）</Label>
+              <Input
+                id="pos-shares"
+                inputMode="decimal"
+                value={sharesInput}
+                onChange={e => setSharesInput(e.target.value)}
+                placeholder="如 10000"
+                className="tabular-nums"
+              />
+            </div>
+            <Button size="sm" onClick={() => void saveShares()} disabled={savingShares}>
+              <Save className="size-4" />{savingShares ? '保存中…' : '保存'}
+            </Button>
+            {detail.position && (
+              <Button size="sm" variant="outline" onClick={() => void clearShares()}>
+                <Trash2 className="size-4" />清仓清除
+              </Button>
+            )}
+            {detail.position?.market_value != null && (
+              <div className="text-[13px] text-muted-foreground">
+                市值快照 <span className="font-medium tabular-nums text-foreground">
+                  {detail.position.market_value.toLocaleString()} 元
+                </span>
+                <span className="ml-1 text-[11px]">（份额 × {detail.position.value_as_of} 单位净值，自动算）</span>
+              </div>
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            份额 × 最新单位净值 = 市值快照（保存时自动重算）；组合评估页「持仓份额」权重模式即按此占比。
+          </p>
+        </Card>
+      )}
+
       {/* 结论层 */}
       <Card className="gap-2 p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-sm font-medium">结论层（手写 markdown，保存时双写 data/notes/{code}.md）</div>
-          {detail.note_updated_at && <span className="text-[11px] text-muted-foreground">更新于 {detail.note_updated_at.slice(0, 16)}</span>}
+          <div className="flex items-center gap-2">
+            {detail.note_updated_at && <span className="text-[11px] text-muted-foreground">更新于 {detail.note_updated_at.slice(0, 16)}</span>}
+            <Button size="sm" variant="outline" onClick={() => void genDraft()} disabled={drafting}>
+              <PenLine className="size-4" />{drafting ? '生成中…' : '生成草稿'}
+            </Button>
+          </div>
         </div>
         <Textarea
           value={noteValue}

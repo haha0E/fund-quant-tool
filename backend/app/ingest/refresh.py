@@ -131,13 +131,13 @@ def refresh_profile(code: str) -> dict:
             """INSERT INTO fund_profile (code, as_of, name, full_name, fund_type,
                    inception_date, scale, company, manager, custodian, rating,
                    benchmark, objective, strategy, fee_management, fee_custody,
-                   fee_subscription, fee_redemption, stock_position,
-                   stock_position_as_of, tracked_index, source)
+                   fee_subscription, fee_redemption, fee_sales_service,
+                   stock_position, stock_position_as_of, tracked_index, source)
                VALUES (:code, :as_of, :name, :full_name, :fund_type, :inception_date,
                    :scale, :company, :manager, :custodian, :rating, :benchmark,
                    :objective, :strategy, :fee_management, :fee_custody,
-                   :fee_subscription, :fee_redemption, :stock_position,
-                   :stock_position_as_of, :tracked_index, :source)
+                   :fee_subscription, :fee_redemption, :fee_sales_service,
+                   :stock_position, :stock_position_as_of, :tracked_index, :source)
                ON CONFLICT(code, as_of) DO UPDATE SET
                    name = excluded.name, full_name = excluded.full_name,
                    fund_type = excluded.fund_type, inception_date = excluded.inception_date,
@@ -149,6 +149,7 @@ def refresh_profile(code: str) -> dict:
                    fee_custody = excluded.fee_custody,
                    fee_subscription = excluded.fee_subscription,
                    fee_redemption = excluded.fee_redemption,
+                   fee_sales_service = excluded.fee_sales_service,
                    stock_position = excluded.stock_position,
                    stock_position_as_of = excluded.stock_position_as_of,
                    tracked_index = excluded.tracked_index, source = excluded.source""",
@@ -226,16 +227,40 @@ def refresh_metrics(code: str) -> dict:
 
 _STEPS = {"nav": refresh_nav, "profile": refresh_profile, "holdings": refresh_holdings}
 
+# M3 基准入库（新浪路由）：组合评估的超额基准
+DEFAULT_BENCHMARKS: list[tuple[str, str]] = [
+    ("sh000300", "沪深300"),
+    ("sh000852", "中证1000"),
+]
+
+
+def refresh_index(symbol: str) -> dict:
+    """基准指数日频落 index_daily（价格指数，未含股息——组合页标注）。"""
+    rows = source_map.fetch("index_daily", symbol=symbol)
+    with conn() as c:
+        c.executemany(
+            """INSERT INTO index_daily (code, date, close) VALUES (?, ?, ?)
+               ON CONFLICT(code, date) DO UPDATE SET close = excluded.close""",
+            [(symbol, r["date"], r["close"]) for r in rows],
+        )
+    return {"index_rows": len(rows), "latest": rows[-1]["date"] if rows else None}
+
 
 def refresh(scope: str = "all", codes: list[str] | None = None) -> dict:
-    """编排入口。scope ∈ nav|profile|holdings|metrics|all；metrics 总在最后跑。"""
+    """编排入口。scope ∈ nav|profile|holdings|metrics|index|all；metrics 总在最后跑。"""
     wanted = list(_STEPS) if scope == "all" else [scope]
-    steps = [s for s in wanted if s in _STEPS]  # metrics 不在 _STEPS，由下方单独处理
+    steps = [s for s in wanted if s in _STEPS]  # metrics/index 不在 _STEPS，由下方单独处理
     with conn() as c:
         pool = c.execute("SELECT code FROM fund ORDER BY pool_type, code").fetchall()
     codes = codes or [r["code"] for r in pool]
     summary: dict = {"scope": scope, "funds": {}, "errors": {}}
-    for code in codes:
+    if scope in ("all", "index"):
+        for symbol, _name in DEFAULT_BENCHMARKS:
+            try:
+                summary["funds"][symbol] = {"index": refresh_index(symbol)}
+            except Exception as e:  # noqa: BLE001
+                summary["errors"][f"{symbol}:index"] = str(e)[:200]
+    for code in (codes if steps else []):  # scope=index 时无基金步骤，不展开空循环
         summary["funds"][code] = {}
         for step in steps:
             try:

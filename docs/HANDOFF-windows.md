@@ -1,11 +1,11 @@
-# 会话交接文档（2026-10-28 · M2 完成 → M3 待开工）
+# 会话交接文档（2026-10-28 晚 · M3 完成 → M4 待开工）
 
 > 用途：新会话开工前先读本文 + `ROADMAP.md`（末尾进度行）+ `docs/实现方案-fund-workbench.md`（§1 架构 / §3 库表 / §5 里程碑 / §6 口径）+ `docs/复查报告-重仓基金-20261020.md` §四（口径反转教训）。
 > 历史：本文原为 2026-10-14 Windows 迁移交接（uv/GitHub/数据源复测均已完成，详见 ROADMAP 10-14 行），现整体重写为 M2→M3 交接。
 
 ## 项目当前状态
 
-- **进度**：M1 ✅（画像库 CRUD+结论双写）→ **M2 ✅（2026-10-28 验收线达成）** → M3 待开工（用户手机验收 M2 后，10-30 开工，11-17 前后交付）。
+- **进度**：M1 ✅ → M2 ✅（2026-10-28）→ **M3 ✅（2026-10-28 晚，含 6 项扩展全部交付，21/21 测试绿 + 生产实测）** → M4 穿透分析页待开工。
 - **池状态**：持仓 4（000390/004195/012920/022364）+ 研究池 8（021030/006113/001411/110005/020972/018344/000960/**011369**——2026-10-28 已执行二选一卖出、转研究池作克隆对照，标签"AI算力,克隆对照"）。
 - **投资侧待办**：卖出 011369 的资金去向未定（创新药定投 021030/006113 仅新钱，或暂持货币）；下次双周核查 **2026-11-11**。
 - **运行时**：任务计划 FQT_Web_Server 常驻 `0.0.0.0:8000`（防火墙「FQT 8000 tailnet only」仅放行 100.64.0.0/10，已实测）；手机访问 `http://100.124.213.38:8000/`；前端 dist 由 FastAPI 同源托管。
@@ -31,25 +31,39 @@
 5. **Windows curl 传中文 JSON body 必坏**（GBK 管道）→ 一律用 python urllib/json 发请求。
 6. **git push**：HTTPS 凭据已失效，用 SSH 一次性 URL `git push git@github.com:haha0E/fund-quant-tool.git main:main`。
 7. **部署节律**：改前端 = `npm run build` 即生效（FileResponse 按请求读盘，无需重启）；改后端 = `MSYS_NO_PATHCONV=1 schtasks /end /tn FQT_Web_Server` → `/run`；本地调试另起 `uvicorn app.main:app --port 8010` 不碰生产。
-8. 全量首刷约 2 分钟（反爬 sleep 为主），单基金 15-30 秒；重复调用走当日缓存不外呼。
+8. 全量首刷约 2 分钟（反爬 sleep 为主），单基金 15-30 秒；重复调用走当日缓存不外呼；基准指数 scope=index 单独刷（两个指数各一次外呼）。
+9. **手机写操作（入池/刷新/保存）需 token**：电脑打开 data/auth_token.txt 复制，手机首次操作弹窗粘贴一次（存 localStorage）；GET 不需要。
+10. M2 的「指标卡四数字/YTD 锚点」等验收点全部不变；000390 YTD +14.55%（10-27）仍为锚点。
 
 ## 已建自动化（本工作区）
 
 - **双周策略会话**（automation-bb7eb9d5）：每 2 周周三 09:00，**首次 2026-11-11**。自动：读 workbench.db 生成 `data/strategy/brief-YYYYMMDD.md`（指标/持仓环比/光模块集中度/缺口）→ Bark 推送摘要 → git commit+push。用户有空时开 ZCode 会话敲 `/grill-me` 拷问策略（该技能 disable-model-invocation，只能用户触发）。
 
-## 下一步：M3 范围（用户 2026-10-28 已确认扩展）
+## M3 交付物地图（2026-10-28 晚，21/21 测试绿 + 生产实测）
 
-用户手机验收 M2（6 步清单：指标卡四数字/YTD 手算锚点/图表切窗/持仓滞后徽标/110005 不采信/刷新+结论保存）后，10-30 开工：
+| 模块 | 文件 | 要点 |
+|---|---|---|
+| 性能修复 | `main.py`（GZipMiddleware+Cache-Control）、`EChart.tsx`（echarts 按需）、`vite.config.ts`（manualChunks） | 首屏传输 1.69MB→约 350KB（-79%）：>1KB 响应一律 gzip；assets/ immutable 缓存一年、index.html no-cache；echarts/zrender 独立 chunk（业务迭代零重下）。**「有时加载很久」根因 = 未压缩大 bundle × tailnet DERP 中继波动** |
+| 持仓录入 | `routers/funds.py`（PUT/DELETE position）、FundDetail 持仓卡 | 市值=份额×最新单位净值自动算；组合权重默认=份额×净值占比 |
+| 预检入池 | `routers/funds.py`（GET preflight/{code}）、FundLibrary 两步弹窗 | 走 ingest 拉档案+净值算预览（近1y/YTD 现金分红口径+完整性闸门）不入库；预览卡→确认入池并单刷；预检失败有手动录入逃生门 |
+| 结论草稿 | `services/note_draft.py`、GET /{code}/note/draft、详情页按钮 | **确定性模板非 LLM**：基本面+指标+持仓环比（新进/退出/加减仓>0.5pp）+分红+缺口+规则提示（回撤-20%/夏普0/收益-10%/滞后120天）；填入编辑框不自动保存 |
+| 策略页 | `data/strategy/strategy.md`、`routers/strategy.py`、Strategy.tsx（marked） | 固化策略（不做三件事/定投纪律/二选一框架/暴露上限≤60%/核查节奏/信号清单/口径红线）；strategy.md 置顶+brief-* 降序；修订走 git |
+| 组合评估 | `db.py`（index_daily 表）、`services/portfolio.py`、`routers/portfolio.py`、Portfolio.tsx | scope=index 基准入库（沪深300/中证1000）；共同交易日对齐+日收益现金分红口径+每日再平衡合成；三权重模式（持仓份额/等权/手调）；两两 pearson 热力图；对齐后基准超额；完整性闸门成员 div 置 0+缺口标注 |
+| token 鉴权 | `config.get_auth_token`、main.py 中间件、前端 TokenDialog | data/auth_token.txt 首访生成；/api 非 GET 必带 X-FQT-Token（GET 放行）；前端 401 全局弹窗，手机粘贴一次 |
+| 顺手 | fund_profile.fee_sales_service（幂等迁移 _MIGRATIONS）、详情页长窗复权回撤 | C 类销售服务费；「全部」窗（>1年）回撤改分红再投复权因子 |
 
-1. **my_position 录入 UI**（前置，半天）——M3 默认权重 = 份额×最新净值。
-2. **预检入池**（约 1 天）：`GET /api/funds/preflight/{code}` 走 ingest 拉预览不入库；弹窗两步：输代码→预览卡→确认入池并单刷。
-3. **结论自动草稿**（约 1 天）：`GET /api/funds/{code}/note/draft` 从库内确定性模板生成（指标+持仓环比+分红+缺口+规则化提示），填入编辑框不自动保存——**不用 LLM 生成底稿**（用户无量化基础，要可复算可信）。
-4. **策略页 + data/strategy/**（约 1.5 天）：固化策略 md（从两份调查报告提炼：定投纪律/二选一框架/暴露上限/核查节奏）+ 前端只读渲染 + git diff 版本史。
-5. **组合评估三件套 + 基准超额**（主体）：基准指数入库（index_daily 新浪路由已通）、services/portfolio.py（净值合成/相关性/超额，用 align_common_dates）、`POST /api/portfolio/eval`、前端组合页（等权/手调、热力图）。验收=§5 原文不降标准。
-6. **token 鉴权**（半天，用户已同意）：写接口必带 token，手机存一次。
-7. 顺手：C 类销售服务费字段；长窗（>1年）回撤改分红再投复权序列（修常数阻尼）。
+**M3 修掉的两个真 bug**（测试拦下，复述防再犯）：
+1. `_member_daily_returns` 收益序列与共同日错位一天 → 组合净值整体错位（等权手算用例必红）；
+2. 基准超额没用 align 后的序列，基金多出的尾日被计入超额（§6-6 铁律的组合版回归用例必红）。
 
-M4 穿透 ~11 月底、M5 领域探索+快照+任务计划 ~12 月上中、M6 总验收 ~12 月下（重做 10-13 诊断 + 3 基金抽验 ≤0.5pct）。
+## 下一步：M4 穿透分析页（~11 月底）
+
+验收原文（§5 不降标准）：**新易盛/中际旭创组合权重排前列、超标标色；报告期滞后标注**。
+- 数据已备：fund_holding 存量（000390 2026-09-30 新易盛 7.01%/中际旭创 7.12%）+ 穿透权重口径 Σ(基金权重×占净值比)、前十大外汇总「未披露部分」（§6 已定）。
+- 复用：my_position（组合权重）、组合页权重模式、EChart 热力图。
+- 个股日频/估值路由（新浪/百度）M2 已注册未用，M4 直接走 source_map.fetch("stock_daily"/"stock_valuation")。
+
+M5 领域探索+快照+任务计划 ~12 月上中、M6 总验收 ~12 月下（重做 10-13 诊断 + 3 基金抽验 ≤0.5pct）。
 
 ## 红线（沿用，不因里程碑变化）
 

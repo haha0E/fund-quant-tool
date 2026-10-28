@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS fund_profile (
     fee_custody         REAL,             -- 托管费率 %/年
     fee_subscription    REAL,             -- 最高申购费率 %
     fee_redemption      REAL,             -- 最高赎回费率 %
+    fee_sales_service   REAL,             -- 销售服务费率 %/年（C 类为主，M3 补字段）
     stock_position      REAL,             -- 股票占净值比 %（最新报告期）
     stock_position_as_of TEXT,            -- 股票仓位报告期
     tracked_index       TEXT,             -- 跟踪标的（联接/指数基金用，可空）
@@ -88,7 +89,21 @@ CREATE TABLE IF NOT EXISTS my_position (
     value_as_of  TEXT,                    -- 快照日期
     updated_at   TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
+
+-- M3 组合评估：基准指数日频（新浪路由，价格指数未含股息）
+CREATE TABLE IF NOT EXISTS index_daily (
+    code  TEXT NOT NULL,                  -- 新浪指数代码，如 sh000300
+    date  TEXT NOT NULL,
+    close REAL NOT NULL,
+    PRIMARY KEY (code, date)
+);
 """
+
+# CREATE TABLE IF NOT EXISTS 不会给既有表补列——轻量迁移在此幂等执行
+_MIGRATIONS = [
+    ("fund_profile", "fee_sales_service",
+     "ALTER TABLE fund_profile ADD COLUMN fee_sales_service REAL"),
+]
 
 
 def get_conn() -> sqlite3.Connection:
@@ -113,3 +128,7 @@ def conn():
 def init_db() -> None:
     with conn() as c:
         c.executescript(SCHEMA)
+        for table, column, ddl in _MIGRATIONS:
+            cols = {r[1] for r in c.execute(f"PRAGMA table_info({table})")}
+            if column not in cols:
+                c.execute(ddl)

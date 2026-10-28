@@ -1,4 +1,4 @@
-"""画像库接口：入池/列表/详情/标签/结论层（FR1）。
+"""画像库接口：入池/列表/详情/标签/结论层（FR1）+ 持仓录入/预检/草稿（M3）。
 
 结论层双层结构（实现方案 §1）：note 写 SQLite 的同时导出 md 快照到 data/notes/，
 保证仓库里永远有一份人可读、可 git diff 的结论。
@@ -10,6 +10,7 @@ from ..db import conn
 from ..schemas import (
     FundIn, FundOut, FundPatch, NoteIn, NoteOut, FundDetailOut,
     MetricOut, NavPoint, DividendEvent, HoldingOut,
+    PositionIn, PositionOut, PreflightOut, NoteDraftOut,
 )
 from ..services.metrics import has_negative_diff_drift
 
@@ -36,6 +37,48 @@ SELECT f.code, f.name, f.pool_type, f.domain_tags, f.created_at,
        EXISTS(SELECT 1 FROM note n WHERE n.fund_code = f.code) AS has_note
 FROM fund f
 """
+
+
+def _collect_gaps(code: str) -> tuple[list[str], bool]:
+    """数据缺口清单 + 完整性闸门标记（详情页与结论草稿共用同一口径）。
+
+    缺口显式标注不静默造假（红线）；完整性闸门（110005 差值负向漂移先例）
+    命中时指标不采信，由调用方置 metric=None。
+    """
+    with conn() as c:
+        profile = c.execute(
+            "SELECT * FROM fund_profile WHERE code = ? ORDER BY as_of DESC LIMIT 1",
+            (code,)).fetchone()
+        metric = c.execute(
+            "SELECT 1 FROM fund_metric WHERE code = ? LIMIT 1", (code,)).fetchone()
+        nav_rows = c.execute(
+            "SELECT date, unit_nav, acc_nav, dividend FROM fund_nav"
+            " WHERE code = ? ORDER BY date", (code,)).fetchall()
+        holding_n = c.execute(
+            "SELECT COUNT(DISTINCT report_date) AS n FROM fund_holding WHERE code = ?",
+            (code,)).fetchone()["n"]
+
+    gaps: list[str] = []
+    profile_dict = dict(profile) if profile else None
+    if profile_dict:
+        for f in ("fee_management", "fee_custody", "fee_subscription", "fee_redemption",
+                  "stock_position", "manager", "benchmark", "scale"):
+            if profile_dict.get(f) is None:
+                gaps.append(f"档案缺 {f}")
+    else:
+        gaps.append("档案未摄取（POST /api/refresh?scope=profile）")
+    if not nav_rows:
+        gaps.append("净值未摄取（POST /api/refresh?scope=nav）")
+    if not holding_n:
+        gaps.append("前十大持仓未披露或未摄取（QDII/新基金常滞后）")
+
+    integrity_bad = has_negative_diff_drift([r["acc_nav"] for r in nav_rows],
+                                            [r["unit_nav"] for r in nav_rows])
+    if integrity_bad:
+        gaps.append("净值差值序列负向漂移（份额折算/数据修正），指标不采信——复查报告 2026-10-20 §四定调")
+    elif not metric and nav_rows:
+        gaps.append("指标未计算（POST /api/refresh?scope=metrics）")
+    return gaps, integrity_bad
 
 
 @router.get("", response_model=list[FundOut])
@@ -72,30 +115,14 @@ def fund_detail(code: str):
             "SELECT * FROM fund_holding WHERE code = ? ORDER BY report_date DESC",
             (code,)).fetchall()
         note = c.execute("SELECT * FROM note WHERE fund_code = ?", (code,)).fetchone()
+        position = c.execute(
+            "SELECT * FROM my_position WHERE code = ?", (code,)).fetchone()
 
-    gaps: list[str] = []
+    gaps, integrity_bad = _collect_gaps(code)
     profile_dict = dict(profile) if profile else None
-    if profile_dict:
-        for f in ("fee_management", "fee_custody", "fee_subscription", "fee_redemption",
-                  "stock_position", "manager", "benchmark", "scale"):
-            if profile_dict.get(f) is None:
-                gaps.append(f"档案缺 {f}")
-    else:
-        gaps.append("档案未摄取（POST /api/refresh?scope=profile）")
-
-    if not nav_rows:
-        gaps.append("净值未摄取（POST /api/refresh?scope=nav）")
-
-    # 完整性闸门：差值负向漂移（110005 份额折算先例）→ 指标不采信，缺口显式标注
-    integrity_bad = has_negative_diff_drift([r["acc_nav"] for r in nav_rows],
-                                            [r["unit_nav"] for r in nav_rows])
-    if integrity_bad:
-        metric_out = None
-        gaps.append("净值差值序列负向漂移（份额折算/数据修正），指标不采信——复查报告 2026-10-20 §四定调")
-    else:
+    metric_out = None
+    if not integrity_bad:
         metric_out = MetricOut(**dict(metric)) if metric else None
-        if not metric and nav_rows:
-            gaps.append("指标未计算（POST /api/refresh?scope=metrics）")
 
     periods = sorted({r["report_date"] for r in holding_rows}, reverse=True)
     latest_holdings = [r for r in holding_rows if r["report_date"] == periods[0]] \
@@ -114,10 +141,9 @@ def fund_detail(code: str):
         holding_periods=periods,
         note=note["content"] if note else "",
         note_updated_at=note["updated_at"] if note else None,
+        position=PositionOut(**dict(position)) if position else None,
         data_gaps=gaps,
     )
-    if not detail.holdings:
-        detail.data_gaps.append("前十大持仓未披露或未摄取（QDII/新基金常滞后）")
     return detail
 
 
@@ -169,6 +195,104 @@ def get_note(code: str):
         if not row:
             raise HTTPException(404, f"基金 {code} 还没有结论笔记")
         return NoteOut(**dict(row))
+
+
+# ---- M3：预检入池 / 持仓录入 / 结论草稿 ----
+
+@router.get("/preflight/{code}", response_model=PreflightOut)
+def preflight(code: str):
+    """预检入池（M3）：走 ingest 拉档案+净值算预览，**不入库不写池**。
+
+    外呼受反爬限速（0.6s 间隔+指数退避+当日缓存），实测约 2-4 秒；
+    预览收益走 §6 现金分红口径（分红由差值变动现推，完整性闸门同款）。
+    """
+    from ..ingest import source_map
+    from ..ingest.refresh import _detect_dividends
+    from ..services.metrics import Series, window_return
+
+    if len(code) != 6 or not code.isdigit():
+        raise HTTPException(400, "基金代码须为 6 位数字")
+    try:
+        basic = source_map.fetch("profile_basic", code=code)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"档案预检失败（代码可能有误或数据源异常）：{e}") from e
+    try:
+        rows = _detect_dividends(source_map.fetch("nav", code=code))
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"净值预检失败：{e}") from e
+
+    warnings: list[str] = []
+    name = basic.get("基金名称") or ""
+    if not name:
+        warnings.append("名录未返回基金名称，请人工确认代码")
+    integrity_bad = any(r["anomaly"] for r in rows)
+    ret_1y = ret_ytd = None
+    if len(rows) >= 2 and rows[-1]["date"] >= rows[0]["date"]:
+        s = Series([r["date"] for r in rows], [r["unit_nav"] for r in rows],
+                   [r["dividend"] for r in rows])
+        as_of = rows[-1]["date"]
+        ret_1y = window_return(s, _shift(as_of, -365))
+        ret_ytd = window_return(s, _shift(f"{as_of[:4]}-01-01", -1))
+    if integrity_bad:
+        warnings.append("差值负向漂移（份额折算先例）：预览收益按无分红口径，略低估")
+    return PreflightOut(
+        code=code, name=name,
+        fund_type=basic.get("基金类型"), company=basic.get("基金公司"),
+        manager=basic.get("基金经理"), scale=basic.get("最新规模"),
+        inception_date=basic.get("成立时间"),
+        latest_nav_date=rows[-1]["date"] if rows else None,
+        ret_1y=ret_1y, ret_ytd=ret_ytd, integrity_bad=integrity_bad,
+        warnings=warnings,
+    )
+
+
+@router.put("/{code}/position", response_model=PositionOut)
+def save_position(code: str, pos: PositionIn):
+    """持仓份额录入（M3）。市值快照 = 份额 × 最新单位净值（自动算，不手输）。"""
+    with conn() as c:
+        if not c.execute("SELECT 1 FROM fund WHERE code = ?", (code,)).fetchone():
+            raise HTTPException(404, f"基金 {code} 不在池中")
+        last = c.execute(
+            "SELECT date, unit_nav FROM fund_nav WHERE code = ? ORDER BY date DESC LIMIT 1",
+            (code,)).fetchone()
+        market_value = round(pos.shares * last["unit_nav"], 2) if last else None
+        value_as_of = last["date"] if last else None
+        c.execute(
+            """INSERT INTO my_position (code, shares, market_value, value_as_of, updated_at)
+               VALUES (?, ?, ?, ?, datetime('now', 'localtime'))
+               ON CONFLICT(code) DO UPDATE SET
+                   shares = excluded.shares, market_value = excluded.market_value,
+                   value_as_of = excluded.value_as_of, updated_at = excluded.updated_at""",
+            (code, pos.shares, market_value, value_as_of))
+        row = c.execute("SELECT * FROM my_position WHERE code = ?", (code,)).fetchone()
+    return PositionOut(**dict(row))
+
+
+@router.delete("/{code}/position", status_code=204)
+def clear_position(code: str):
+    with conn() as c:
+        cur = c.execute("DELETE FROM my_position WHERE code = ?", (code,))
+        if cur.rowcount == 0:
+            raise HTTPException(404, f"基金 {code} 没有持仓记录")
+
+
+@router.get("/{code}/note/draft", response_model=NoteDraftOut)
+def note_draft(code: str):
+    """结论自动草稿（M3）：库内确定性模板（指标+持仓环比+分红+缺口+规则提示）。
+
+    不用 LLM——可复算可信；前端填入编辑框，**不自动保存**。
+    """
+    from ..services.note_draft import build_note_draft
+    try:
+        return NoteDraftOut(draft=build_note_draft(code))
+    except KeyError as e:
+        raise HTTPException(404, str(e)) from e
+
+
+def _shift(date_str: str, days: int) -> str:
+    from datetime import datetime, timedelta
+    d = datetime.strptime(date_str, "%Y-%m-%d") + timedelta(days=days)
+    return d.strftime("%Y-%m-%d")
 
 
 @router.put("/{code}/note", response_model=NoteOut)

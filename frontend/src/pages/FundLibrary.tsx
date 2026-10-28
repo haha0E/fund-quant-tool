@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { Ellipsis, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
-import { api, type Fund } from '@/api/client'
+import { api, type Fund, type Preflight } from '@/api/client'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -33,10 +33,20 @@ import { cn } from '@/lib/utils'
 // M1 骨架只做池管理；净值/收益等指标字段随 M2 摄取层接入后补到表格与详情页。
 const DOMAIN_OPTIONS = ['AI算力', '医药', '黄金', '红利', '消费', 'QDII', '宽基']
 
+function pct(v: number | null | undefined): string {
+  if (v == null) return '—'
+  return `${v > 0 ? '+' : ''}${(v * 100).toFixed(2)}%`
+}
+
+function toneClass(v: number | null | undefined): string {
+  if (v == null || Math.abs(v) < 1e-9) return ''
+  return v > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
+}
+
 const features = tableFeatures({})
 const helper = createColumnHelper<typeof features, Fund>()
 
-/* ---------- 入池弹窗：react-hook-form + zod（手动 safeParse，见定稿 §1） ---------- */
+/* ---------- 入池弹窗（M3 两步预检）：输代码 → 预览卡 → 确认入池并单刷 ---------- */
 
 const fundFormSchema = z.object({
   code: z.string().regex(/^\d{6}$/, '6 位数字代码'),
@@ -56,11 +66,41 @@ function AddFundDialog({ open, onOpenChange, onDone }: {
   const { register, handleSubmit, reset, setValue, watch, setError, formState: { errors } } =
     useForm<FundFormValues>({ defaultValues: DEFAULT_FORM })
   const [submitting, setSubmitting] = useState(false)
+  const [checking, setChecking] = useState(false)
+  const [preview, setPreview] = useState<Preflight | null>(null)
+  const [manualMode, setManualMode] = useState(false)  // 预检失败的逃生门：跳过预览手动录
+
+  const code = watch('code')
 
   const tags = watch('domainTags').split(/[,，\s]+/).filter(Boolean)
   const toggleTag = (tag: string) => {
     const next = tags.includes(tag) ? tags.filter(t => t !== tag) : [...tags, tag]
     setValue('domainTags', next.join(' '))
+  }
+
+  const resetAll = () => {
+    reset(DEFAULT_FORM)
+    setPreview(null)
+    setManualMode(false)
+  }
+
+  const doPreflight = async () => {
+    if (!/^\d{6}$/.test(code)) {
+      setError('code', { message: '6 位数字代码' })
+      return
+    }
+    setChecking(true)
+    try {
+      const p = await api.preflight(code)
+      setPreview(p)
+      setManualMode(false)
+      if (p.name) setValue('name', p.name)
+    } catch (e) {
+      toast.error(`预检失败：${(e as Error).message}`)
+      toast.info('可点「跳过预检手动录入」继续')
+    } finally {
+      setChecking(false)
+    }
   }
 
   const submit = async (values: FundFormValues) => {
@@ -80,8 +120,18 @@ function AddFundDialog({ open, onOpenChange, onDone }: {
         pool_type: parsed.data.pool_type,
         domain_tags,
       })
-      toast.success(`${fund.name} 已入池`)
-      reset(DEFAULT_FORM)
+      toast.success(`${fund.name} 已入池，正在单刷数据…`)
+      try {
+        const r = await api.refresh('all', parsed.data.code)
+        if (Object.keys(r.errors).length > 0) {
+          toast.warning(`部分数据源失败：${Object.entries(r.errors).map(([k, v]) => `${k}: ${v}`).join('；').slice(0, 120)}`)
+        } else {
+          toast.success('数据已就绪')
+        }
+      } catch (e) {
+        toast.warning(`入池成功但刷新失败：${(e as Error).message}（稍后可在详情页手动刷新）`)
+      }
+      resetAll()
       onOpenChange(false)
       onDone()
     } catch (e) {
@@ -91,61 +141,113 @@ function AddFundDialog({ open, onOpenChange, onDone }: {
     }
   }
 
+  const showForm = preview || manualMode
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={v => { if (!v) resetAll(); onOpenChange(v) }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>基金入池</DialogTitle>
-          <DialogDescription>录入持仓或研究标的，领域标签后续用于领域探索聚合。</DialogDescription>
+          <DialogDescription>
+            {showForm ? '确认信息后入池，将自动单刷净值/档案/持仓（约 15-30 秒）。' : '先输代码预检（拉最新档案与业绩预览，不入库），确认后再入池。'}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(submit)} className="grid gap-4">
           <div className="grid gap-1.5">
             <Label htmlFor="fund-code">基金代码</Label>
-            <Input id="fund-code" inputMode="numeric" maxLength={6} placeholder="如 000390" className="tabular-nums" {...register('code')} />
+            <div className="flex gap-2">
+              <Input
+                id="fund-code" inputMode="numeric" maxLength={6}
+                placeholder="如 000390" className="tabular-nums"
+                {...register('code')}
+                onChange={e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6); setPreview(null); register('code').onChange(e) }}
+              />
+              {!showForm && (
+                <Button type="button" variant="secondary" onClick={() => void doPreflight()} disabled={checking || code.length !== 6}>
+                  {checking ? '预检中…' : '预检'}
+                </Button>
+              )}
+            </div>
             {errors.code && <p className="text-xs text-destructive">{errors.code.message}</p>}
+            {!showForm && (
+              <button type="button" className="justify-self-start text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground" onClick={() => setManualMode(true)}>
+                跳过预检手动录入（数据源异常时）
+              </button>
+            )}
           </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="fund-name">基金名称</Label>
-            <Input id="fund-name" placeholder="如 华商优势行业A" {...register('name')} />
-            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="fund-pool">入哪个池</Label>
-            <Select value={watch('pool_type')} onValueChange={v => setValue('pool_type', v as FundFormValues['pool_type'])}>
-              <SelectTrigger id="fund-pool" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="holding">持仓（实盘）</SelectItem>
-                <SelectItem value="research">研究池（观察）</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="fund-tags">领域标签</Label>
-            <Input id="fund-tags" placeholder="空格或逗号分隔，如：AI算力 黄金" {...register('domainTags')} />
-            <div className="flex flex-wrap gap-1.5 pt-0.5">
-              {DOMAIN_OPTIONS.map(tag => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => toggleTag(tag)}
-                  aria-pressed={tags.includes(tag)}
-                  className={cn(
-                    'h-6 rounded-md border px-2 text-xs transition-colors',
-                    tags.includes(tag)
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
-                  )}
-                >
-                  {tag}
-                </button>
+
+          {preview && (
+            <div className="grid gap-1.5 rounded-lg border bg-muted/40 p-3 text-[13px]">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium">{preview.name || '（名录未返回名称）'}</span>
+                {preview.integrity_bad && <Badge className="bg-amber-500/15 text-[10px] text-amber-700">差值负漂</Badge>}
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-muted-foreground">
+                <span>类型：{preview.fund_type ?? '—'}</span>
+                <span>规模：{preview.scale ?? '—'}</span>
+                <span>经理：{preview.manager ?? '—'}</span>
+                <span>成立：{preview.inception_date ?? '—'}</span>
+              </div>
+              <div className="mt-0.5 flex flex-wrap gap-x-4 border-t pt-1.5">
+                <span>近1年 <span className={cn('font-medium tabular-nums', preview.ret_1y != null && toneClass(preview.ret_1y))}>{pct(preview.ret_1y)}</span></span>
+                <span>YTD <span className={cn('font-medium tabular-nums', preview.ret_ytd != null && toneClass(preview.ret_ytd))}>{pct(preview.ret_ytd)}</span></span>
+                <span className="text-muted-foreground">净值截至 {preview.latest_nav_date ?? '—'}</span>
+              </div>
+              {preview.warnings.map(w => (
+                <p key={w} className="text-[11px] text-amber-600 dark:text-amber-400">{w}</p>
               ))}
             </div>
-          </div>
+          )}
+
+          {showForm && (
+            <>
+              <div className="grid gap-1.5">
+                <Label htmlFor="fund-name">基金名称{preview && '（预检回填，可改）'}</Label>
+                <Input id="fund-name" placeholder="如 华商优势行业A" {...register('name')} />
+                {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="fund-pool">入哪个池</Label>
+                <Select value={watch('pool_type')} onValueChange={v => setValue('pool_type', v as FundFormValues['pool_type'])}>
+                  <SelectTrigger id="fund-pool" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="holding">持仓（实盘）</SelectItem>
+                    <SelectItem value="research">研究池（观察）</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="fund-tags">领域标签</Label>
+                <Input id="fund-tags" placeholder="空格或逗号分隔，如：AI算力 黄金" {...register('domainTags')} />
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {DOMAIN_OPTIONS.map(tag => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleTag(tag)}
+                      aria-pressed={tags.includes(tag)}
+                      className={cn(
+                        'h-6 rounded-md border px-2 text-xs transition-colors',
+                        tags.includes(tag)
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
+                      )}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
           <DialogFooter className="gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
-            <Button type="submit" disabled={submitting}>{submitting ? '提交中…' : '确认入池'}</Button>
+            <Button type="button" variant="outline" onClick={() => { resetAll(); onOpenChange(false) }}>取消</Button>
+            {showForm && (
+              <Button type="submit" disabled={submitting}>{submitting ? '入池刷新中…' : '确认入池'}</Button>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>

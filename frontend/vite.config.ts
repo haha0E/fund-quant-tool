@@ -12,6 +12,17 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // echarts/zrender 单独成 chunk：业务代码迭代重新 build 后该 chunk hash 不变，
+        // 配合后端 assets/ 的 immutable 缓存头，手机端日常访问无需重下图表库
+        manualChunks(id: string) {
+          if (id.includes('echarts') || id.includes('zrender')) return 'echarts'
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {

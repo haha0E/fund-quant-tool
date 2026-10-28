@@ -20,6 +20,8 @@ data/*.db
 data/snapshot/
 # 摄取层当日磁盘缓存（反爬纪律产物，可随时删）
 data/cache/
+# 写接口鉴权 token（凭据，绝不入库）
+data/auth_token.txt
 # UI 验收截图（含真实持仓信息，本仓为公开仓，不入库）
 data/shots/
 

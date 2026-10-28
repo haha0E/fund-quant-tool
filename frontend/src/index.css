@@ -142,3 +142,29 @@
     @apply font-sans;
     }
 }
+
+/* ---- 策略页 markdown 只读渲染（marked 输出，tailwind 无 typography 插件，手写基础层） ---- */
+.md-body {
+  font-size: 14px;
+  line-height: 1.75;
+  color: hsl(var(--foreground) / 0.92);
+}
+.md-body h1 { font-size: 19px; font-weight: 600; margin: 0.4em 0 0.6em; }
+.md-body h2 { font-size: 16px; font-weight: 600; margin: 1.4em 0 0.5em; padding-bottom: 0.3em; border-bottom: 1px solid hsl(var(--border)); }
+.md-body h3 { font-size: 14px; font-weight: 600; margin: 1.2em 0 0.4em; }
+.md-body p { margin: 0.55em 0; }
+.md-body ul, .md-body ol { margin: 0.55em 0; padding-left: 1.5em; }
+.md-body ul { list-style: disc; }
+.md-body ol { list-style: decimal; }
+.md-body li { margin: 0.25em 0; }
+.md-body blockquote { margin: 0.8em 0; padding: 0.2em 1em; border-left: 3px solid hsl(var(--primary) / 0.5); color: hsl(var(--muted-foreground)); background: hsl(var(--muted) / 0.4); border-radius: 0 6px 6px 0; }
+.md-body blockquote p { margin: 0.3em 0; }
+.md-body code { font-family: ui-monospace, monospace; font-size: 12px; background: hsl(var(--muted)); padding: 0.15em 0.4em; border-radius: 4px; }
+.md-body pre { background: hsl(var(--muted)); padding: 0.8em 1em; border-radius: 8px; overflow-x: auto; margin: 0.8em 0; }
+.md-body pre code { background: transparent; padding: 0; }
+.md-body table { width: 100%; border-collapse: collapse; margin: 0.8em 0; font-size: 13px; }
+.md-body th, .md-body td { border: 1px solid hsl(var(--border)); padding: 6px 10px; text-align: left; }
+.md-body th { background: hsl(var(--muted) / 0.6); font-weight: 500; }
+.md-body hr { border: none; border-top: 1px solid hsl(var(--border)); margin: 1.5em 0; }
+.md-body a { color: hsl(var(--primary)); text-decoration: underline; text-underline-offset: 2px; }
+.md-body strong { font-weight: 600; }

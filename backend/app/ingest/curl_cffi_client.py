@@ -124,7 +124,8 @@ def fetch_fees(code: str) -> dict:
                     "https://fundf10.eastmoney.com/")
         soup = BeautifulSoup(text, features="lxml")
         out: dict = {"fee_management": None, "fee_custody": None,
-                     "fee_subscription": None, "fee_redemption": None}
+                     "fee_subscription": None, "fee_redemption": None,
+                     "fee_sales_service": None}
         for h4 in soup.find_all("h4", class_="t"):
             title = re.sub(r"\s+", " ", h4.get_text(strip=True))
             table = h4.find_next("table")
@@ -132,7 +133,8 @@ def fetch_fees(code: str) -> dict:
                 continue
             body = table.get_text(" ", strip=True)
             if title == "运作费用":
-                for key, kw in (("fee_management", "管理费"), ("fee_custody", "托管费")):
+                for key, kw in (("fee_sales_service", "销售服务费"),
+                                ("fee_management", "管理费"), ("fee_custody", "托管费")):
                     m = re.search(rf"{kw}[^\d]*([\d.]+)%", body)
                     if m:
                         out[key] = float(m.group(1))
