@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>主题预览 · 基金研究工作台（四套皮肤）</title>
+<style>body{margin:0;background:#E9EBE7;}</style>
+</head>
+<body>
+<div id="fw-preview" class="fw-theme-a">
+  <style>
+    /* ===== 产品级 token：四主题（与真实应用 index.css 对齐） ===== */
+    #fw-preview { --fw-radius: 8px; --fw-font-display: inherit; --fw-font-num: inherit; }
+    #fw-preview.fw-theme-a {
+      --fw-paper:#F5F6F2; --fw-card:#FFFFFF; --fw-ink:#232A27; --fw-ink2:#5A6660;
+      --fw-line:#E3E7E2; --fw-line2:#D2D8D2; --fw-accent:#1F4E45; --fw-accent-weak:#EBF1EF;
+      --fw-up:#C13B2E; --fw-down:#2F8F5B; --fw-watch:#A87B2F; --fw-btn-text:#FFFFFF; --fw-radius:8px;
+    }
+    #fw-preview.fw-theme-b {
+      --fw-paper:#F7F3EA; --fw-card:#FFFDF8; --fw-ink:#2A2622; --fw-ink2:#6B6257;
+      --fw-line:#E7DFD1; --fw-line2:#DCD2BF; --fw-accent:#B5442C; --fw-accent-weak:#F6E7E1;
+      --fw-up:#B5442C; --fw-down:#4A7C59; --fw-watch:#A87B2F; --fw-btn-text:#FFFDF8; --fw-radius:10px;
+    }
+    #fw-preview.fw-theme-c {
+      --fw-paper:#12181D; --fw-card:#1A2229; --fw-ink:#E8EDF1; --fw-ink2:#93A1AC;
+      --fw-line:#2A353F; --fw-line2:#35424E; --fw-accent:#E8A33D; --fw-accent-weak:#2C2618;
+      --fw-up:#FF6A4D; --fw-down:#3DD68C; --fw-watch:#D9B36A; --fw-btn-text:#12181D; --fw-radius:6px;
+      --fw-font-num:'Cascadia Mono',Consolas,'Courier New',monospace;
+    }
+    #fw-preview.fw-theme-d {
+      --fw-paper:#FAFAF7; --fw-card:#FFFFFF; --fw-ink:#1C1C1A; --fw-ink2:#77776F;
+      --fw-line:#E8E8E2; --fw-line2:#D9D9D2; --fw-accent:#1C1C1A; --fw-accent-weak:#EFEFEA;
+      --fw-up:#C0392B; --fw-down:#4C7A5C; --fw-watch:#A08339; --fw-btn-text:#FFFFFF; --fw-radius:4px;
+      --fw-font-display:Georgia,'Noto Serif SC','Source Han Serif SC',SimSun,serif;
+    }
+
+    #fw-preview {
+      font-family:-apple-system,'Segoe UI','Microsoft YaHei UI','PingFang SC',sans-serif;
+      background:var(--fw-paper); color:var(--fw-ink);
+      border-radius:6px; overflow:hidden;
+      -webkit-font-smoothing:antialiased;
+    }
+    .fw-num { font-variant-numeric:tabular-nums; font-family:var(--fw-font-num); }
+
+    /* ---- 顶部导航 ---- */
+    .fw-header {
+      display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+      background:var(--fw-card); border-bottom:1px solid var(--fw-line);
+      padding:0 24px; min-height:56px;
+    }
+    .fw-brand { display:flex; align-items:center; gap:10px; }
+    .fw-seal { width:12px; height:12px; background:var(--fw-accent); border-radius:2px; }
+    .fw-brand-name { font-size:16px; font-weight:600; letter-spacing:.02em; font-family:var(--fw-font-display); }
+    .fw-brand-sub { font-size:12px; color:var(--fw-ink2); }
+    .fw-header-right { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+    .fw-nav { display:flex; gap:4px; }
+    .fw-nav-item {
+      appearance:none; background:none; border:none; cursor:pointer;
+      font:inherit; font-size:14px; color:var(--fw-ink2);
+      padding:8px 10px; border-bottom:2px solid transparent; border-radius:0;
+    }
+    .fw-nav-item:hover { color:var(--fw-ink); }
+    .fw-nav-item[aria-current="page"] { color:var(--fw-accent); border-bottom-color:var(--fw-accent); font-weight:500; }
+    .fw-theme-switch { display:flex; background:var(--fw-paper); border:1px solid var(--fw-line); border-radius:6px; padding:2px; }
+    .fw-theme-opt {
+      appearance:none; border:none; cursor:pointer; font:inherit; font-size:12px;
+      color:var(--fw-ink2); background:transparent; padding:3px 10px; border-radius:4px;
+    }
+    .fw-theme-opt[aria-pressed="true"] { background:var(--fw-card); color:var(--fw-ink); font-weight:500; box-shadow:0 1px 2px rgba(0,0,0,.08); }
+
+    /* ---- 主区 ---- */
+    .fw-main { max-width:1080px; margin:0 auto; padding:28px 24px 48px; }
+    .fw-page-head { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:8px; }
+    .fw-page-title { font-size:20px; font-weight:600; margin:0; font-family:var(--fw-font-display); }
+    .fw-page-desc { color:var(--fw-ink2); font-size:13px; margin:4px 0 0; }
+    .fw-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .fw-btn {
+      appearance:none; cursor:pointer; font:inherit; font-size:14px;
+      border:1px solid var(--fw-line2); background:var(--fw-card); color:var(--fw-ink);
+      padding:5px 14px; border-radius:var(--fw-radius); display:inline-flex; align-items:center; gap:6px;
+    }
+    .fw-btn:hover { border-color:var(--fw-accent); color:var(--fw-accent); }
+    .fw-btn-primary { background:var(--fw-accent); border-color:var(--fw-accent); color:var(--fw-btn-text); }
+    .fw-btn-primary:hover { color:var(--fw-btn-text); opacity:.9; }
+    .fw-select {
+      appearance:none; font:inherit; font-size:13px; color:var(--fw-ink);
+      background:var(--fw-card); border:1px solid var(--fw-line2);
+      padding:5px 10px; border-radius:var(--fw-radius); cursor:pointer;
+    }
+
+    /* ---- 分组与卡片 ---- */
+    .fw-group-label {
+      display:flex; align-items:center; gap:8px; margin:26px 0 12px;
+      font-size:14px; font-weight:600; color:var(--fw-accent); font-family:var(--fw-font-display);
+    }
+    .fw-group-label::before { content:''; width:14px; height:3px; background:var(--fw-accent); border-radius:2px; }
+    .fw-group-label small { color:var(--fw-ink2); font-weight:400; font-size:12px; }
+    .fw-holdings { display:flex; flex-direction:column; gap:12px; }
+    .fw-holding-card {
+      display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+      background:var(--fw-card); border:1px solid var(--fw-line);
+      box-shadow:inset 3px 0 0 var(--fw-accent);
+      border-radius:var(--fw-radius); padding:14px 18px;
+    }
+    .fw-fund-name { font-size:15px; font-weight:600; }
+    .fw-fund-code { font-size:12px; color:var(--fw-ink2); letter-spacing:.04em; }
+    .fw-id { display:flex; flex-direction:column; gap:2px; min-width:0; }
+    .fw-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .fw-side { display:flex; align-items:center; gap:12px; }
+    .fw-chip {
+      display:inline-flex; align-items:center; border:1px solid var(--fw-line2);
+      color:var(--fw-ink2); border-radius:4px; font-size:12px; line-height:18px; padding:0 6px;
+    }
+    .fw-note { font-size:12px; color:var(--fw-ink2); white-space:nowrap; display:inline-flex; align-items:center; }
+    .fw-note.has { color:var(--fw-accent); background:var(--fw-accent-weak); border-radius:4px; padding:1px 8px; }
+    .fw-link-btn { appearance:none; border:none; background:none; cursor:pointer; font:inherit; font-size:12px; color:var(--fw-ink2); padding:2px 4px; }
+    .fw-link-btn:hover { color:var(--fw-up); }
+    .fw-research-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+    .fw-research-card {
+      background:var(--fw-card); border:1px solid var(--fw-line); border-radius:var(--fw-radius);
+      padding:12px 14px; display:flex; flex-direction:column; gap:6px; transition:border-color .15s ease;
+    }
+    .fw-research-card:hover { border-color:var(--fw-accent); }
+    .fw-card-top { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+    .fw-add-card {
+      appearance:none; cursor:pointer; font:inherit; font-size:13px; color:var(--fw-ink2);
+      border:1px dashed var(--fw-line2); border-radius:var(--fw-radius); background:transparent;
+      min-height:96px; display:flex; align-items:center; justify-content:center; gap:6px;
+    }
+    .fw-add-card:hover { border-color:var(--fw-accent); color:var(--fw-accent); }
+
+    /* ---- 占位页 ---- */
+    .fw-placeholder { text-align:center; padding:80px 0; color:var(--fw-ink2); }
+    .fw-placeholder h2 { font-size:18px; font-weight:600; color:var(--fw-ink); margin:0 0 8px; font-family:var(--fw-font-display); }
+    .fw-milestone {
+      display:inline-block; margin-top:12px; border:1px solid var(--fw-line2);
+      border-radius:999px; padding:2px 12px; font-size:12px;
+    }
+
+    /* ---- 弹窗 ---- */
+    .fw-overlay {
+      position:absolute; inset:0; background:rgba(10,14,12,.45);
+      display:flex; align-items:flex-start; justify-content:center; padding:48px 16px; z-index:20;
+    }
+    /* display:flex 会压过 [hidden] 的浏览器默认 display:none，必须显式声明 */
+    .fw-overlay[hidden] { display:none; }
+    #fw-preview { position:relative; }
+    .fw-modal {
+      background:var(--fw-card); border:1px solid var(--fw-line); border-radius:var(--fw-radius);
+      width:100%; max-width:420px; padding:20px 22px;
+      box-shadow:0 12px 32px rgba(10,14,12,.18);
+    }
+    .fw-modal h3 { margin:0 0 16px; font-size:16px; font-weight:600; font-family:var(--fw-font-display); }
+    .fw-field { margin-bottom:14px; }
+    .fw-field label { display:block; font-size:13px; margin-bottom:5px; }
+    .fw-input, .fw-field select {
+      width:100%; box-sizing:border-box; font:inherit; font-size:14px;
+      color:var(--fw-ink); background:var(--fw-card);
+      border:1px solid var(--fw-line2); border-radius:var(--fw-radius); padding:6px 10px;
+    }
+    .fw-input::placeholder { color:var(--fw-ink2); }
+    .fw-modal-foot { display:flex; justify-content:flex-end; gap:8px; margin-top:20px; }
+    @media (max-width:560px) {
+      .fw-header { padding:0 14px; }
+      .fw-main { padding:20px 14px 36px; }
+    }
+  </style>
+
+  <header class="fw-header">
+    <div class="fw-brand">
+      <span class="fw-seal" aria-hidden="true"></span>
+      <span class="fw-brand-name">基金研究工作台</span>
+      <span class="fw-brand-sub">本地运行 · 决策辅助 · 数据不出机器</span>
+    </div>
+    <div class="fw-header-right">
+      <nav class="fw-nav" aria-label="页面导航">
+        <button type="button" class="fw-nav-item" data-page="dashboard">仪表盘</button>
+        <button type="button" class="fw-nav-item" data-page="library" aria-current="page">画像库</button>
+        <button type="button" class="fw-nav-item" data-page="explore">领域探索</button>
+        <button type="button" class="fw-nav-item" data-page="portfolio">组合评估</button>
+        <button type="button" class="fw-nav-item" data-page="overlap">穿透分析</button>
+      </nav>
+      <div class="fw-theme-switch" role="group" aria-label="界面主题">
+        <button type="button" class="fw-theme-opt" data-theme="fw-theme-a" aria-pressed="true">墨青台账</button>
+        <button type="button" class="fw-theme-opt" data-theme="fw-theme-b" aria-pressed="false">暖纸印鉴</button>
+        <button type="button" class="fw-theme-opt" data-theme="fw-theme-c" aria-pressed="false">夜盘终端</button>
+        <button type="button" class="fw-theme-opt" data-theme="fw-theme-d" aria-pressed="false">宣纸水墨</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="fw-main">
+    <!-- 画像库 -->
+    <section data-panel="library" aria-label="画像库">
+      <div class="fw-page-head">
+        <div>
+          <h1 class="fw-page-title">画像库</h1>
+          <p class="fw-page-desc">持仓 2 只 · 研究池 3 只——你的基金台账</p>
+        </div>
+        <div class="fw-actions">
+          <button type="button" class="fw-btn fw-btn-primary" data-open-modal>＋ 基金入池</button>
+          <select class="fw-select" aria-label="按池筛选">
+            <option>全部</option><option>持仓</option><option>研究池</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="fw-group-label">持仓 <small>2</small></div>
+      <div class="fw-holdings">
+        <div class="fw-holding-card">
+          <div class="fw-id">
+            <span class="fw-fund-name">永赢科技智选A</span>
+            <span class="fw-fund-code fw-num">022364</span>
+          </div>
+          <div class="fw-meta"><span class="fw-chip">AI算力</span><span class="fw-chip">科技</span></div>
+          <div class="fw-side">
+            <span class="fw-note has">✓ 结论已记</span>
+            <button type="button" class="fw-link-btn">移出</button>
+          </div>
+        </div>
+        <div class="fw-holding-card">
+          <div class="fw-id">
+            <span class="fw-fund-name">华商优势行业A</span>
+            <span class="fw-fund-code fw-num">000390</span>
+          </div>
+          <div class="fw-meta"><span class="fw-chip">AI算力</span></div>
+          <div class="fw-side">
+            <span class="fw-note has">✓ 结论已记</span>
+            <button type="button" class="fw-link-btn">移出</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="fw-group-label">研究池 <small>3</small></div>
+      <div class="fw-research-grid">
+        <div class="fw-research-card">
+          <div class="fw-card-top">
+            <span class="fw-fund-name" style="font-size:14px">汇添富港股通创新药联接A</span>
+            <button type="button" class="fw-link-btn">移出</button>
+          </div>
+          <span class="fw-fund-code fw-num">021030</span>
+          <div class="fw-meta"><span class="fw-chip">医药</span></div>
+          <span class="fw-note">未记结论</span>
+        </div>
+        <div class="fw-research-card">
+          <div class="fw-card-top">
+            <span class="fw-fund-name" style="font-size:14px">汇添富创新医药A</span>
+            <button type="button" class="fw-link-btn">移出</button>
+          </div>
+          <span class="fw-fund-code fw-num">006113</span>
+          <div class="fw-meta"><span class="fw-chip">医药</span></div>
+          <span class="fw-note">未记结论</span>
+        </div>
+        <div class="fw-research-card">
+          <div class="fw-card-top">
+            <span class="fw-fund-name" style="font-size:14px">诺安创新驱动A</span>
+            <button type="button" class="fw-link-btn">移出</button>
+          </div>
+          <span class="fw-fund-code fw-num">001411</span>
+          <div class="fw-meta"><span class="fw-chip">存储</span><span class="fw-chip">观察</span></div>
+          <span class="fw-note">未记结论</span>
+        </div>
+        <button type="button" class="fw-add-card" data-open-modal>＋ 添加研究标的</button>
+      </div>
+    </section>
+
+    <!-- 四个占位页 -->
+    <section data-panel="dashboard" aria-label="仪表盘" hidden>
+      <div class="fw-placeholder">
+        <h2>仪表盘</h2>
+        <p>骨架就位，内容随 M3 交付逐步长出来。</p>
+        <span class="fw-milestone">M3 交付</span>
+      </div>
+    </section>
+    <section data-panel="explore" aria-label="领域探索" hidden>
+      <div class="fw-placeholder">
+        <h2>领域探索</h2>
+        <p>骨架就位，内容随 M5 交付逐步长出来。</p>
+        <span class="fw-milestone">M5 交付</span>
+      </div>
+    </section>
+    <section data-panel="portfolio" aria-label="组合评估" hidden>
+      <div class="fw-placeholder">
+        <h2>组合评估</h2>
+        <p>骨架就位，内容随 M3 交付逐步长出来。</p>
+        <span class="fw-milestone">M3 交付</span>
+      </div>
+    </section>
+    <section data-panel="overlap" aria-label="穿透分析" hidden>
+      <div class="fw-placeholder">
+        <h2>穿透分析</h2>
+        <p>骨架就位，内容随 M4 交付逐步长出来。</p>
+        <span class="fw-milestone">M4 交付</span>
+      </div>
+    </section>
+  </main>
+
+  <!-- 基金入池弹窗 -->
+  <div class="fw-overlay" data-modal hidden>
+    <div class="fw-modal" role="dialog" aria-label="基金入池">
+      <h3>基金入池</h3>
+      <div class="fw-field">
+        <label for="fw-code">基金代码</label>
+        <input id="fw-code" class="fw-input fw-num" placeholder="如 000390" maxlength="6">
+      </div>
+      <div class="fw-field">
+        <label for="fw-name">基金名称</label>
+        <input id="fw-name" class="fw-input" placeholder="如 华商优势行业A">
+      </div>
+      <div class="fw-field">
+        <label for="fw-pool">入哪个池</label>
+        <select id="fw-pool" class="fw-input">
+          <option>研究池（观察）</option>
+          <option>持仓（实盘）</option>
+        </select>
+      </div>
+      <div class="fw-field">
+        <label for="fw-tags">领域标签</label>
+        <select id="fw-tags" class="fw-input">
+          <option>AI算力</option><option>医药</option><option>黄金</option><option>红利</option>
+        </select>
+      </div>
+      <div class="fw-modal-foot">
+        <button type="button" class="fw-btn" data-close-modal>取消</button>
+        <button type="button" class="fw-btn fw-btn-primary" data-close-modal>确定</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var root = document.getElementById('fw-preview');
+      var state = { theme: 'fw-theme-a', page: 'library' };
+
+      function save() {
+        if (window.zcode && window.zcode.setWidgetState) {
+          window.zcode.setWidgetState({
+            modelContent: { theme: state.theme.replace('fw-theme-', ''), page: state.page }
+          }).catch(function () {});
+        }
+      }
+
+      root.querySelectorAll('.fw-theme-opt').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          root.querySelectorAll('.fw-theme-opt').forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
+          root.classList.remove('fw-theme-a', 'fw-theme-b', 'fw-theme-c', 'fw-theme-d');
+          root.classList.add(btn.dataset.theme);
+          state.theme = btn.dataset.theme;
+          save();
+        });
+      });
+
+      root.querySelectorAll('.fw-nav-item').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          root.querySelectorAll('.fw-nav-item').forEach(function (b) {
+            b.removeAttribute('aria-current');
+          });
+          btn.setAttribute('aria-current', 'page');
+          root.querySelectorAll('[data-panel]').forEach(function (p) {
+            p.hidden = p.dataset.panel !== btn.dataset.page;
+          });
+          state.page = btn.dataset.page;
+          save();
+        });
+      });
+
+      var modal = root.querySelector('[data-modal]');
+      root.querySelectorAll('[data-open-modal]').forEach(function (btn) {
+        btn.addEventListener('click', function () { modal.hidden = false; });
+      });
+      root.querySelectorAll('[data-close-modal]').forEach(function (btn) {
+        btn.addEventListener('click', function () { modal.hidden = true; });
+      });
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) { modal.hidden = true; }
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.hidden) { modal.hidden = true; }
+      });
+    })();
+  </script>
+</div>
+
+</body>
+</html>

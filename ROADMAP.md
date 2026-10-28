@@ -155,6 +155,8 @@ state 建议：`{"股票": "名称(代码)", "日期": "...", "标题": "...", "
 |---|---|---|---|---|
 | 2026-09-24 | 筹备 | 路线图定稿；Jev 中文财经问题组实测通过；.env 就绪 | 阶段 0 | 用户将开新会话执行 |
 | 2026-10-14 | 需求+技术选型 | ①产品化升级立项：PRD v0.2（基金研究工作台，含研究池/领域探索，docs/PRD-fund-workbench.md）②技术选型定稿：FastAPI+React+AntD+ECharts / SQLite+md快照 / akshare+curl_cffi双客户端（实测净值与Wind口径0.000%偏差，docs/技术选型-fund-workbench.md）③12个同类开源项目调研 ④部署目标定为 Windows 主机，代码已推 GitHub 迁移 | 实现方案设计（第一件事：zvt spike；然后模块划分/数据流/里程碑） | 本行由 ZCode 于 2026-10-14 更新；上下文交接见 docs/HANDOFF-windows.md |
+| 2026-10-14 | Windows 环境搭建+复测 | ①uv 安装 + `uv sync` 依赖恢复完成 ②数据源 Windows 复测：核心项（净值/档案/持仓/排行）全 PASS，交叉核对 5/5 点 0.000%；东财 push2 行情域被反爬（与 macOS 结论一致，预期内），替代源全通（个股→新浪、指数→新浪、估值→百度，乐咕接口已在 akshare 1.19.1 移除）③GitHub 连通修复：本机代理 127.0.0.1:7897 + git 域级代理 `http.https://github.com.proxy`，HTTPS 凭据可用，**SSH key 不再需要** ④**zvt spike 完成：不可用**（0.13.1 连 import 都需三处依赖补丁；无基金净值 recorder、FundStock 仅付费 joinquant 源，证据见选型文档 §5.4），数据层定案 akshare+curl_cffi 自建 | 实现方案设计续：模块划分/数据流图 → 里程碑估算 → 项目骨架 | `.env` 待用户手动重建（TYPESAFE_API_KEY，阶段 3 前完成即可，不阻塞）；代理客户端需保持运行 |
+| 2026-10-15 | 实现方案设计 | ①实现方案文档定稿（docs/实现方案-fund-workbench.md）：三层架构（ingest/services/routers）、数据流图（含 a 档快照链路幂等导入设计）、10 张库表、API 草案、M1-M6 里程碑（≈9 周）、指标口径表 ②项目骨架落地并冒烟通过：backend/（FastAPI+sqlite3，画像库 CRUD+结论层双写 md）+ frontend/（Vite+React18+TS+AntD+ECharts，画像库页可录入，其余四页占位）；中文经 API 往返、md 快照 UTF-8、Vite 代理链路均验证 ③依赖新增 fastapi/uvicorn（后端）与 antd/echarts（前端，React 钉 18 保 AntD 兼容） | M2（第2-3周）：摄取层 + 指标计算 + 单基金画像页；用户先验收实现方案文档与骨架 | 骨架冒烟数据已清理为空库，等用户从 UI 录入；本行由 ZCode 于 2026-10-15 更新 |
 
 ## 📚 学习资源（少而精）
 

@@ -76,7 +76,13 @@
 |---|---|---|---|
 | **OpenBB** | 最大开源投研平台（Python 平台 + Workspace UI + Copilot AI 分析师，机构级） | 理念同向（数据源抽象 + AI 协作工作台）但体量与美股导向不适配 | 不引入；其「多数据源统一抽象 + agent 可用的工作台」作为远期形态参照 |
 | **virattt/ai-hedge-fund** | 数万星教育向 PoC：多 persona Agent（巴菲特/芒格风格）各出 thesis+signal+置信度，PM/风控层聚合，纯模拟 | 「多信号→置信度→聚合」结构与阶段 3 Jev 信号设计同构，且比 TradingAgents 轻 | 阶段 3 信号层的首选参照（多空辩论 + persona 信号聚合两种模式都记入） |
-| **zvt** | 一体化量化数据框架：内置东财免费源，开箱覆盖 A股/指数/**基金净值+十大持仓+财报**，schema 化 SQL 存储，声明式因子计算 | **与我们计划自建的数据层高度重叠**——最接近"现成轮子"的候选 | **实现方案阶段安排半天 spike 验证**：若基金持仓/净值开箱可用且反爬环境与我们一致，数据层可改用 zvt（或部分采用其 schema 设计）；不可用则维持已验证的 akshare+curl_cffi 双客户端 |
+| **zvt** | 一体化量化数据框架：内置东财免费源，开箱覆盖 A股/指数/**基金净值+十大持仓+财报**，schema 化 SQL 存储，声明式因子计算 | **与我们计划自建的数据层高度重叠**——最接近"现成轮子"的候选 | ~~实现方案阶段安排半天 spike 验证~~ → **已验证，不可用，见下方 spike 结论** |
+
+> **zvt spike 结论（2026-10-14 Windows 实测）：不可用，数据层维持 akshare+curl_cffi 自建。**
+> - 版本：PyPI 最新 0.13.1（项目此后无新发布）。**连 import 都不开箱**：需 Python ≤3.11（本项目锁 3.12）+ `numpy<2`（其 pandas 2.0.3 与 numpy 2.x 二进制冲突）+ `setuptools<81`（新版已移除 `pkg_resources`），三处补丁后才能启动。
+> - 核心否定：遍历其全部 recorder（`eastmoney.*`：common/dividend_financing/finance/holder/meta/trading；`em.*`：actor/macro/meta/misc/quotes/trading）——**不存在基金净值 recorder**；全包源码检索 `FundNav` 零引用。
+> - 十大持仓：`FundStock` schema 存在，但唯一数据生产者是 joinquant 源（`jq_fund_meta_recorder.py`，需付费 JQData 账号），东财免费源不覆盖。README 宣称的"基金净值+十大持仓开箱覆盖"与 0.13.1 实际不符。
+> - 连带判断：其 schema 设计参考价值也有限——基金相关 schema 在该版本中没有可用的免费数据生产者，照搬会继承空壳。
 | vn.py / qlib | 交易系统开发框架 / 微软 AI 量化研究平台 | vn.py 面向实盘交易（永久非目标）；qlib 数据准备繁琐、基金不内置、ML 因子导向 | 都不用；qlib 留给阶段 3 若做 ML 因子再评 |
 | PyPortfolioOpt / Riskfolio-Lib / skfolio | 组合优化库（MVO/BL/HRP；CVaR 全家桶；sklearn 风格） | 对应组合评估页的远期增强；v1 明确无评分无优化（PRD 非目标） | 不入 v1；阶段 4+ 做组合优化时三选一（初判 skfolio 最现代） |
 
@@ -86,7 +92,7 @@
 1. 数据源路由与自动降级抽象（Vibe-Trading，28 源 Auto-Fallback）；
 2. 影子账户式建议-后验闭环（Vibe-Trading，阶段 4 设计参照）；
 3. 多 persona 信号聚合 + 多空辩论（ai-hedge-fund / TradingAgents，阶段 3 演进方向）；
-4. **zvt spike（半天）**：数据层自建 vs 采用 zvt 的对照验证——唯一可能改变实现细节（不改选型决策）的调研产出。
+4. ~~**zvt spike（半天）**：数据层自建 vs 采用 zvt 的对照验证~~ → **已完成（2026-10-14）：zvt 不可用，数据层定为 akshare+curl_cffi 自建**（证据见 §5.4 spike 结论）。
 
 ## 6. 验收清单（本阶段关闭条件）
 

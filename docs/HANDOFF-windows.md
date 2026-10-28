@@ -10,6 +10,8 @@
 
 ## Windows 环境搭建（按序执行）
 
+> **2026-10-14 更新：本节已完成。** uv 已装、依赖已恢复、两个探针已复测（核心项全 PASS，交叉核对 5/5 点 0.000%；东财 push2 反爬为预期内，替代源全通）。GitHub 连通走本机代理 127.0.0.1:7897 + `git config --global http.https://github.com.proxy`，HTTPS 凭据可用，SSH key 无需再配。剩余：`.env` 待用户手动重建（阶段 3 前完成即可）。
+
 ```powershell
 # 1. 安装 uv（PowerShell）
 irm https://astral.sh/uv/install.ps1 | iex
