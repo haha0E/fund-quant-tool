@@ -246,3 +246,15 @@ def align_common_dates(dates_a: list[str], vals_a: list[float],
 def excess_return(ret_fund: float, ret_bench: float) -> float:
     """基准超额 = 基金区间收益 - 基准区间收益（对齐后同窗相减）。"""
     return ret_fund - ret_bench
+
+
+def percentile_of_latest(values: list[float | None]) -> float | None:
+    """当前值（序列末位）在整段序列中的百分位（0~1）。M4 穿透层估值分位用。
+
+    None/NaN 剔除；空序列或末位缺失返回 None。
+    """
+    clean = [float(v) for v in values if v is not None and not math.isnan(float(v))]
+    if not clean:
+        return None
+    latest = clean[-1]
+    return sum(1 for v in clean if v <= latest) / len(clean)

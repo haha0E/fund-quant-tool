@@ -97,6 +97,22 @@ CREATE TABLE IF NOT EXISTS index_daily (
     close REAL NOT NULL,
     PRIMARY KEY (code, date)
 );
+
+-- M4 穿透层：重仓股日频（新浪前复权）与估值（百度 PE/PB，日频序列存分位用）
+CREATE TABLE IF NOT EXISTS stock_daily (
+    symbol TEXT NOT NULL,                 -- 新浪代码，如 sz300502
+    date   TEXT NOT NULL,
+    close  REAL NOT NULL,                 -- 前复权收盘
+    PRIMARY KEY (symbol, date)
+);
+
+CREATE TABLE IF NOT EXISTS stock_valuation (
+    symbol  TEXT NOT NULL,                -- 6 位裸代码，如 300502（百度源口径）
+    date    TEXT NOT NULL,
+    pe_ttm  REAL,
+    pb      REAL,
+    PRIMARY KEY (symbol, date)
+);
 """
 
 # CREATE TABLE IF NOT EXISTS 不会给既有表补列——轻量迁移在此幂等执行

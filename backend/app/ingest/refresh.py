@@ -234,6 +234,53 @@ DEFAULT_BENCHMARKS: list[tuple[str, str]] = [
 ]
 
 
+def _a_share_sina_symbol(stock_code: str) -> str | None:
+    """A 股 6 位数字 → 新浪 sz/sh 前缀；港股（5 位）/美股 ticker 不支持新浪 A 股接口 → None。"""
+    if len(stock_code) == 6 and stock_code.isdigit():
+        return ("sh" if stock_code.startswith(("6", "9")) else "sz") + stock_code
+    return None
+
+
+def refresh_stocks(symbols: list[str]) -> dict:
+    """M4 穿透层：重仓股日频（新浪 qfq）+ 估值（百度 PE/PB）落库。
+
+    symbols 接受 6 位裸代码（内部转新浪前缀）；逐个外呼受反爬限速，
+    15 只约 30-60 秒（当日缓存保证重复调用不外呼）。
+    """
+    summary: dict = {"stocks": {}, "errors": {}}
+    for code in symbols:
+        code = code.strip()
+        if len(code) != 6 or not code.isdigit():
+            summary["errors"][code] = "非 A 股 6 位代码（港股/美股暂无路由）"
+            continue
+        sina = _a_share_sina_symbol(code)
+        try:
+            rows = source_map.fetch("stock_daily", symbol=sina)
+            with conn() as c:
+                c.executemany(
+                    """INSERT INTO stock_daily (symbol, date, close) VALUES (?, ?, ?)
+                       ON CONFLICT(symbol, date) DO UPDATE SET close = excluded.close""",
+                    [(sina, r["date"], r["close"]) for r in rows],
+                )
+            summary["stocks"][code] = {"daily_rows": len(rows)}
+        except Exception as e:  # noqa: BLE001 单股失败不阻塞
+            summary["errors"][code] = f"日频: {str(e)[:120]}"
+            continue
+        try:
+            vals = source_map.fetch("stock_valuation", symbol=code)
+            with conn() as c:
+                c.executemany(
+                    """INSERT INTO stock_valuation (symbol, date, pe_ttm, pb) VALUES (?, ?, ?, ?)
+                       ON CONFLICT(symbol, date) DO UPDATE SET
+                       pe_ttm = excluded.pe_ttm, pb = excluded.pb""",
+                    [(code, r["date"], r["pe_ttm"], r["pb"]) for r in vals],
+                )
+            summary["stocks"][code]["valuation_rows"] = len(vals)
+        except Exception as e:  # noqa: BLE001 估值失败只记错误，日频保留
+            summary["errors"][f"{code}:val"] = str(e)[:120]
+    return summary
+
+
 def refresh_index(symbol: str) -> dict:
     """基准指数日频落 index_daily（价格指数，未含股息——组合页标注）。"""
     rows = source_map.fetch("index_daily", symbol=symbol)
@@ -246,10 +293,11 @@ def refresh_index(symbol: str) -> dict:
     return {"index_rows": len(rows), "latest": rows[-1]["date"] if rows else None}
 
 
-def refresh(scope: str = "all", codes: list[str] | None = None) -> dict:
-    """编排入口。scope ∈ nav|profile|holdings|metrics|index|all；metrics 总在最后跑。"""
+def refresh(scope: str = "all", codes: list[str] | None = None,
+            stock_symbols: list[str] | None = None) -> dict:
+    """编排入口。scope ∈ nav|profile|holdings|metrics|index|stocks|all；metrics 总在最后跑。"""
     wanted = list(_STEPS) if scope == "all" else [scope]
-    steps = [s for s in wanted if s in _STEPS]  # metrics/index 不在 _STEPS，由下方单独处理
+    steps = [s for s in wanted if s in _STEPS]  # metrics/index/stocks 不在 _STEPS，由下方单独处理
     with conn() as c:
         pool = c.execute("SELECT code FROM fund ORDER BY pool_type, code").fetchall()
     codes = codes or [r["code"] for r in pool]
@@ -260,7 +308,11 @@ def refresh(scope: str = "all", codes: list[str] | None = None) -> dict:
                 summary["funds"][symbol] = {"index": refresh_index(symbol)}
             except Exception as e:  # noqa: BLE001
                 summary["errors"][f"{symbol}:index"] = str(e)[:200]
-    for code in (codes if steps else []):  # scope=index 时无基金步骤，不展开空循环
+    if scope == "stocks" and stock_symbols:
+        r = refresh_stocks(stock_symbols)
+        summary["stocks"] = r["stocks"]
+        summary["errors"].update(r["errors"])
+    for code in (codes if steps else []):  # scope=index/stocks 时无基金步骤，不展开空循环
         summary["funds"][code] = {}
         for step in steps:
             try:

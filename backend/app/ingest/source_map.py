@@ -74,13 +74,18 @@ def _akshare_holdings(code: str, year: str) -> list[dict]:
 
 
 def _sina_stock_daily(symbol: str) -> list[dict]:
-    """个股日频（新浪，sz300502 形式）。M4 穿透层用，M2 仅注册路由。"""
+    """个股日频（新浪，sz300502 形式，前复权）。M4 穿透层用。
+
+    前复权是必须的：穿透页的涨跌幅/回撤/52 周位置直接用 close 序列，
+    不复权会在除权日出现假跳空。
+    """
     import akshare as ak
 
     from . import net
 
     def do():
-        df = ak.stock_zh_a_daily(symbol=symbol, start_date="20200101", end_date="20991231")
+        df = ak.stock_zh_a_daily(symbol=symbol, start_date="20200101", end_date="20991231",
+                                 adjust="qfq")
         df["date"] = df["date"].astype(str)
         return [{"date": r["date"], "close": float(r["close"])} for _, r in df.iterrows()]
 

@@ -334,7 +334,9 @@ export default function Portfolio() {
                 {([
                   ['近1年', m?.ret_1y, METRIC_TOOLTIPS.ret, toneClass(m?.ret_1y)],
                   ['今年以来', m?.ret_ytd, METRIC_TOOLTIPS.ret, toneClass(m?.ret_ytd)],
-                  ['最大回撤(1y)', m?.max_dd, METRIC_TOOLTIPS.max_dd, 'text-green-600 dark:text-green-400'],
+                  // 回撤 >30% 红（PRD 评分哲学），否则绿
+                  ['最大回撤(1y)', m?.max_dd, `${METRIC_TOOLTIPS.max_dd}（超 -30% 标红）`,
+                    m?.max_dd != null && m.max_dd < -0.30 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'],
                   ['年化波动(1y)', m?.ann_vol, METRIC_TOOLTIPS.ann_vol, ''],
                   ['夏普(1y)', m?.sharpe, METRIC_TOOLTIPS.sharpe, toneClass(m?.sharpe)],
                 ] as const).map(([label, value, tooltip, cls]) => (
@@ -437,6 +439,9 @@ export default function Portfolio() {
                 ) : (
                   <div className="grid h-20 place-items-center text-sm text-muted-foreground">单成员无相关性可算</div>
                 )}
+                <p className="text-[11px] text-muted-foreground">
+                  颜色越红相关性越高；|相关|{'>'}0.8 视为高同涨同跌（PRD 标黄线），减仓讨论时优先关注。
+                </p>
               </Card>
 
               {result.nav_dates.length > 0 && (

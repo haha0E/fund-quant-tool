@@ -179,3 +179,51 @@ class PortfolioEvalOut(BaseModel):
     corr_codes: list[str] = []
     corr_matrix: list[list[float | None]] = []
     data_gaps: list[str] = []
+
+
+# ---- M4：穿透分析（GET /api/portfolio/overlap） ----
+
+class OverlapFundContribution(BaseModel):
+    code: str
+    weight_pct: float                      # 该基金中此股占净值比 %
+    contrib: float                         # 穿透贡献（基金权重 × 占净值比）
+
+
+class OverlapStockOut(BaseModel):
+    stock_code: str
+    stock_name: str | None = None
+    weight: float                          # 穿透合计权重（小数）
+    fund_count: int
+    funds: list[OverlapFundContribution] = []
+    a_share: bool                          # False=港股/美股（无行情路由）
+    as_of: str | None = None               # 行情截止日
+    ret_3m: float | None = None
+    ret_6m: float | None = None
+    ret_ytd: float | None = None
+    pos_52w: float | None = None           # 52 周区间位置 0~1
+    ann_vol: float | None = None
+    max_dd_1y: float | None = None
+    pe_ttm: float | None = None
+    pb: float | None = None
+    pe_pct: float | None = None            # PE 近5年分位 0~1
+    pb_pct: float | None = None
+
+
+class OverlapMemberOut(BaseModel):
+    code: str
+    name: str
+    weight: float
+    report_date: str
+    lag_days: int
+    top10_sum: float                       # 前十大合计占比（小数）
+
+
+class OverlapOut(BaseModel):
+    members: list[OverlapMemberOut] = []
+    stocks: list[OverlapStockOut] = []
+    undisclosed: float = 0.0               # 未披露部分（前十大之外合计）
+    effective_count: int = 0               # 有效持仓数（穿透权重 ≥ 阈值）
+    effective_min_weight: float = 0.01
+    over_limit: float = 0.10               # 标色阈值（>10% 红）
+    max_lag_days: int = 0
+    data_gaps: list[str] = []

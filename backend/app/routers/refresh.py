@@ -1,7 +1,8 @@
-"""手动刷新接口（实现方案 §4）：POST /api/refresh?scope=nav|profile|holdings|metrics|all。
+"""手动刷新接口（实现方案 §4）：POST /api/refresh?scope=nav|profile|holdings|metrics|index|stocks|all。
 
 任务计划程序（M5）也调它。同步执行——12 只全量首刷约 1-2 分钟（反爬 sleep
 是主要耗时），前端 loading 提示；当日磁盘缓存保证重复调用不再外呼。
+scope=stocks 需带 symbols=300502,300308（M4 穿透层个股行情/估值）。
 """
 from fastapi import APIRouter, HTTPException, Query
 
@@ -9,15 +10,19 @@ from ..ingest import refresh as refresh_mod
 
 router = APIRouter(prefix="/api/refresh", tags=["refresh"])
 
-_SCOPES = ("nav", "profile", "holdings", "metrics", "index", "all")
+_SCOPES = ("nav", "profile", "holdings", "metrics", "index", "stocks", "all")
 
 
 @router.post("")
 def trigger_refresh(scope: str = Query("all"), code: str | None = Query(None),
-                     seed: bool = Query(False)):
-    """code 传入时只刷该基金（画像页单刷），缺省刷全池。"""
+                    seed: bool = Query(False),
+                    symbols: str | None = Query(None)):
+    """code 传入时只刷该基金（画像页单刷）；stocks 时 symbols 逗号分隔个股代码。"""
     if scope not in _SCOPES:
         raise HTTPException(400, f"scope 须为 {'/'.join(_SCOPES)}")
+    if scope == "stocks" and not symbols:
+        raise HTTPException(400, "scope=stocks 必须带 symbols=300502,300308 形式的个股代码")
     seeded = refresh_mod.seed_default_pool() if seed else None
-    summary = refresh_mod.refresh(scope=scope, codes=[code] if code else None)
+    summary = refresh_mod.refresh(scope=scope, codes=[code] if code else None,
+                                  stock_symbols=symbols.split(",") if symbols else None)
     return {"scope": scope, "code": code, "seeded": seeded, **summary}

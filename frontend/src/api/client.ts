@@ -180,6 +180,37 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.status === 204 ? (undefined as T) : res.json()
 }
 
+// ---- M4：穿透分析 ----
+
+export interface OverlapResult {
+  members: { code: string; name: string; weight: number; report_date: string; lag_days: number; top10_sum: number }[]
+  stocks: {
+    stock_code: string
+    stock_name: string | null
+    weight: number
+    fund_count: number
+    funds: { code: string; weight_pct: number; contrib: number }[]
+    a_share: boolean
+    as_of: string | null
+    ret_3m: number | null
+    ret_6m: number | null
+    ret_ytd: number | null
+    pos_52w: number | null
+    ann_vol: number | null
+    max_dd_1y: number | null
+    pe_ttm: number | null
+    pb: number | null
+    pe_pct: number | null
+    pb_pct: number | null
+  }[]
+  undisclosed: number
+  effective_count: number
+  effective_min_weight: number
+  over_limit: number
+  max_lag_days: number
+  data_gaps: string[]
+}
+
 export const api = {
   listFunds: (pool?: string) =>
     request<Fund[]>(`/api/funds${pool ? `?pool=${pool}` : ''}`),
@@ -212,6 +243,10 @@ export const api = {
     request<StrategyContent>(`/api/strategy/${encodeURIComponent(filename)}`),
   evalPortfolio: (body: { codes: string[]; weights?: Record<string, number>; benchmark?: string | null }) =>
     request<PortfolioResult>('/api/portfolio/eval', { method: 'POST', body: JSON.stringify(body) }),
+  getOverlap: (codes: string[], weights?: number[]) =>
+    request<OverlapResult>(`/api/portfolio/overlap?codes=${codes.join(',')}${weights ? `&w=${weights.join(',')}` : ''}`),
+  refreshStocks: (symbols: string[]) =>
+    request<RefreshSummary>(`/api/refresh?scope=stocks&symbols=${symbols.join(',')}`, { method: 'POST' }),
   authStatus: () =>
     request<{ enabled: boolean; hint: string }>('/api/auth/status'),
 }
