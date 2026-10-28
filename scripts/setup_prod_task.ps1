@@ -12,6 +12,15 @@ $ErrorActionPreference = "Stop"
 $repo = "D:\For_Coding\MyProjects\fund-quant-tool"
 
 # ---- 防火墙 ----
+# 陈年残留清理：Windows 弹窗被"取消"时会为监听端口的程序生成入站全端口 Block 规则
+# （"TCP/UDP Query User"），Block 永远压过下面的端口 Allow 规则——uv 管理的 python
+# 中过招就会出现"本机 curl 通、手机/局域网打不开"。禁用 uv python 的此类 Block 残留。
+$uvPyRoot = "$env:APPDATA\uv\python\"
+Get-NetFirewallRule -Action Block | where {
+    $_.Enabled -eq "True" -and $_.Direction -eq "Inbound" -and
+    (($_ | Get-NetFirewallApplicationFilter).Program -like "$uvPyRoot*")
+} | Disable-NetFirewallRule
+
 Remove-NetFirewallRule -DisplayName "FQT 8000 tailnet only" -ErrorAction SilentlyContinue
 New-NetFirewallRule -DisplayName "FQT 8000 tailnet only" -Direction Inbound `
     -Action Allow -Protocol TCP -LocalPort 8000 -RemoteAddress 100.64.0.0/10 | Out-Null
