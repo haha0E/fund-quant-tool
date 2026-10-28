@@ -5,9 +5,11 @@ requires-python = ">=3.12"
 dependencies = [
     "akshare>=1.19.1",
     "curl-cffi>=0.16.3",
+    "fastapi>=0.143.1",
     "httpx>=0.28.1",
     "jupyter>=1.1.1",
     "matplotlib>=3.11.2",
     "pandas>=3.0.6",
     "typesafe-sdk>=0.7.0",
+    "uvicorn[standard]>=0.54.0",
 ]
