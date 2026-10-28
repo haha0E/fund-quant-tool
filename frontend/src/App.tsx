@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Component, useEffect, useState, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -44,6 +44,32 @@ function TokenDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: 
   )
 }
 
+// 顶层错误边界：任何渲染异常显示错误卡（含报错信息与重载按钮），不再整页白屏
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null }
+
+  static getDerivedStateFromError(error: Error) {
+    return { error }
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="grid min-h-screen place-items-center bg-background p-6 text-foreground">
+          <div className="flex max-w-md flex-col items-center gap-3 rounded-xl border bg-card p-6 text-center">
+            <h2 className="text-base font-semibold">页面出错了</h2>
+            <p className="break-all text-xs leading-relaxed text-muted-foreground">
+              {String(this.state.error?.message ?? this.state.error)}
+            </p>
+            <Button size="sm" onClick={() => window.location.reload()}>重新加载</Button>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 // 应用壳：侧边栏 + 顶栏 + 路由主区（界面风格定稿 2026-10-19）
 export default function App() {
   const [tokenOpen, setTokenOpen] = useState(false)
@@ -55,27 +81,29 @@ export default function App() {
   }, [])
 
   return (
-    <TooltipProvider delayDuration={150}>
-      <div className="flex min-h-screen w-full bg-background text-foreground">
-        <AppSidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <SiteHeader />
-          <main className="min-w-0 flex-1 p-6">
-            <Routes>
-              <Route path="/" element={<Navigate to="/library" replace />} />
-              <Route path="/dashboard" element={<Placeholder title="仪表盘" milestone="M5" />} />
-              <Route path="/library" element={<FundLibrary />} />
-              <Route path="/library/:code" element={<FundDetail />} />
-              <Route path="/domain" element={<Placeholder title="领域探索" milestone="M5" />} />
-              <Route path="/portfolio" element={<Portfolio />} />
-              <Route path="/strategy" element={<Strategy />} />
-              <Route path="/overlap" element={<Placeholder title="穿透分析" milestone="M4" />} />
-            </Routes>
-          </main>
+    <ErrorBoundary>
+      <TooltipProvider delayDuration={150}>
+        <div className="flex min-h-screen w-full bg-background text-foreground">
+          <AppSidebar />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <SiteHeader />
+            <main className="min-w-0 flex-1 p-6">
+              <Routes>
+                <Route path="/" element={<Navigate to="/library" replace />} />
+                <Route path="/dashboard" element={<Placeholder title="仪表盘" milestone="M5" />} />
+                <Route path="/library" element={<FundLibrary />} />
+                <Route path="/library/:code" element={<FundDetail />} />
+                <Route path="/domain" element={<Placeholder title="领域探索" milestone="M5" />} />
+                <Route path="/portfolio" element={<Portfolio />} />
+                <Route path="/strategy" element={<Strategy />} />
+                <Route path="/overlap" element={<Placeholder title="穿透分析" milestone="M4" />} />
+              </Routes>
+            </main>
+          </div>
+          <Toaster richColors position="top-center" />
+          <TokenDialog open={tokenOpen} onOpenChange={setTokenOpen} />
         </div>
-        <Toaster richColors position="top-center" />
-        <TokenDialog open={tokenOpen} onOpenChange={setTokenOpen} />
-      </div>
-    </TooltipProvider>
+      </TooltipProvider>
+    </ErrorBoundary>
   )
 }

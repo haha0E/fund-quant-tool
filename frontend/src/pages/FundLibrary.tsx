@@ -70,9 +70,11 @@ function AddFundDialog({ open, onOpenChange, onDone }: {
   const [preview, setPreview] = useState<Preflight | null>(null)
   const [manualMode, setManualMode] = useState(false)  // 预检失败的逃生门：跳过预览手动录
 
-  const code = watch('code')
+  // watch 在自定义 onChange 时序下可能瞬时 undefined（实测 iOS 输入即白屏先例），一律兜底
+  const code = watch('code') ?? ''
+  const poolType = watch('pool_type') ?? 'research'
 
-  const tags = watch('domainTags').split(/[,，\s]+/).filter(Boolean)
+  const tags = (watch('domainTags') ?? '').split(/[,，\s]+/).filter(Boolean)
   const toggleTag = (tag: string) => {
     const next = tags.includes(tag) ? tags.filter(t => t !== tag) : [...tags, tag]
     setValue('domainTags', next.join(' '))
@@ -160,7 +162,14 @@ function AddFundDialog({ open, onOpenChange, onDone }: {
                 id="fund-code" inputMode="numeric" maxLength={6}
                 placeholder="如 000390" className="tabular-nums"
                 {...register('code')}
-                onChange={e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6); setPreview(null); register('code').onChange(e) }}
+                onChange={e => {
+                  // 只留数字限 6 位；用 setValue 直写 RHF store（改写 e.target.value
+                  // 再透传 event 在 iOS 上会让 watch 瞬时 undefined → 白屏，已实测）
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 6)
+                  if (digits !== e.target.value) e.target.value = digits
+                  setValue('code', digits)
+                  setPreview(null)
+                }}
               />
               {!showForm && (
                 <Button type="button" variant="secondary" onClick={() => void doPreflight()} disabled={checking || code.length !== 6}>
@@ -203,12 +212,18 @@ function AddFundDialog({ open, onOpenChange, onDone }: {
             <>
               <div className="grid gap-1.5">
                 <Label htmlFor="fund-name">基金名称{preview && '（预检回填，可改）'}</Label>
-                <Input id="fund-name" placeholder="如 华商优势行业A" {...register('name')} />
+                {/* 受控绑定（setValue 直写 RHF store）：register 非受控时预检回填偶发不落 DOM */}
+                <Input
+                  id="fund-name"
+                  value={watch('name') ?? ''}
+                  onChange={e => setValue('name', e.target.value)}
+                  placeholder="如 华商优势行业A"
+                />
                 {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="fund-pool">入哪个池</Label>
-                <Select value={watch('pool_type')} onValueChange={v => setValue('pool_type', v as FundFormValues['pool_type'])}>
+                <Select value={poolType} onValueChange={v => setValue('pool_type', v as FundFormValues['pool_type'])}>
                   <SelectTrigger id="fund-pool" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
