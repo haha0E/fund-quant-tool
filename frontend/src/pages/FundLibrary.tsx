@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { createColumnHelper, tableFeatures, useTable } from '@tanstack/react-table'
 import dayjs from 'dayjs'
 import { useForm } from 'react-hook-form'
@@ -191,6 +192,7 @@ function RowActions({ fund, onConfirm }: { fund: Fund; onConfirm: (fund: Fund) =
 type PoolFilter = 'all' | 'holding' | 'research'
 
 export default function FundLibrary() {
+  const navigate = useNavigate()
   const [funds, setFunds] = useState<Fund[]>([])
   const [loading, setLoading] = useState(false)
   const [pool, setPool] = useState<PoolFilter>('all')
@@ -373,9 +375,17 @@ export default function FundLibrary() {
                   </TableCell>
                 </TableRow>
               ) : table.getRowModel().rows.map(row => (
-                <TableRow key={row.id}>
+                <TableRow
+                  key={row.id}
+                  className="cursor-pointer"
+                  onClick={() => navigate(`/library/${row.original.code}`)}
+                >
                   {row.getAllCells().map(cell => (
-                    <TableCell key={cell.id} className="px-3 py-2">
+                    <TableCell
+                      key={cell.id}
+                      className="px-3 py-2"
+                      onClick={cell.column.id === 'actions' ? e => e.stopPropagation() : undefined}
+                    >
                       <table.FlexRender cell={cell} />
                     </TableCell>
                   ))}

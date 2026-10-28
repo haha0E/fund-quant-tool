@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 
 from .config import REPO_ROOT
 from .db import init_db
-from .routers import funds
+from .routers import funds, refresh
 
 # 生产态构建产物（npm run build 产出；dist 不入 git，未构建时仅提供 API）
 DIST_DIR = REPO_ROOT / "frontend" / "dist"
@@ -30,6 +30,7 @@ app.add_middleware(
 )
 
 app.include_router(funds.router)
+app.include_router(refresh.router)
 
 
 @app.get("/api/health")
