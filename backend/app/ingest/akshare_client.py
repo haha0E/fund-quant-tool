@@ -80,3 +80,35 @@ def fetch_fund_names() -> dict[str, str]:
 
     return net.cached("fund_names", "all",
                       lambda: net.retry(do, what="akshare fund_names"))
+
+
+def fetch_fund_rank() -> list[dict]:
+    """全市场开放基金排行（M5 领域探索候选池，约 2 万只一次外呼+当日缓存）。
+
+    返回 [{code, name, fund_type?, ret_1m, ret_3m, ret_6m, ret_1y, ret_ytd}]，
+    收益为东财排行原始 % 数值（口径标注：数据商区间涨幅，非本工具 §6 自算口径，
+    只用于候选粗筛排序，入池后指标一律以库内自算为准）。
+    """
+
+    def do():
+        df = ak.fund_open_fund_rank_em(symbol="全部")
+
+        def num(v) -> float | None:
+            try:
+                return float(str(v).replace("%", ""))
+            except (TypeError, ValueError):
+                return None
+
+        out = []
+        for _, r in df.iterrows():
+            out.append({
+                "code": str(r["基金代码"]).strip(),
+                "name": str(r["基金简称"]).strip(),
+                "ret_1m": num(r.get("近1月")), "ret_3m": num(r.get("近3月")),
+                "ret_6m": num(r.get("近6月")), "ret_1y": num(r.get("近1年")),
+                "ret_ytd": num(r.get("今年来")),
+            })
+        return out
+
+    return net.cached("fund_rank", "all",
+                      lambda: net.retry(do, what="akshare fund_rank"))

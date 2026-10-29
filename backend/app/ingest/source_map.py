@@ -19,6 +19,7 @@ ROUTES: dict[str, list[str]] = {
     "nav":             ["akshare"],            # 基金净值（东财基金数据域）
     "profile_basic":   ["akshare"],            # 雪球档案
     "fund_names":      ["akshare"],            # 基金名录
+    "fund_rank":       ["akshare"],            # 全市场排行（M5 领域探索候选）
     "holdings":        ["curl_cffi", "akshare"],  # 东财 F10 前十大持仓（TLS 指纹主路）
     "allocation":      ["curl_cffi"],          # 东财 F10 资产配置（股票仓位）
     "fees":            ["curl_cffi"],          # 东财 F10 费率
@@ -33,6 +34,7 @@ _CLIENTS = {
         "nav": akshare_client.fetch_nav,
         "profile_basic": akshare_client.fetch_profile_basic,
         "fund_names": akshare_client.fetch_fund_names,
+        "fund_rank": akshare_client.fetch_fund_rank,
         "holdings": lambda code, year: _akshare_holdings(code, year),  # 降级备选
     },
     "curl_cffi": {

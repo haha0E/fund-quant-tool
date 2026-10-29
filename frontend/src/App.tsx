@@ -16,6 +16,7 @@ import FundDetail from '@/pages/FundDetail'
 import Portfolio from '@/pages/Portfolio'
 import Strategy from '@/pages/Strategy'
 import Overlap from '@/pages/Overlap'
+import DomainExplore from '@/pages/DomainExplore'
 import Placeholder from '@/pages/Placeholder'
 
 // 写接口 token 补录弹窗（M3 鉴权）：401 全局事件触发，粘贴一次存 localStorage
@@ -94,7 +95,7 @@ export default function App() {
                 <Route path="/dashboard" element={<Placeholder title="仪表盘" milestone="M5" />} />
                 <Route path="/library" element={<FundLibrary />} />
                 <Route path="/library/:code" element={<FundDetail />} />
-                <Route path="/domain" element={<Placeholder title="领域探索" milestone="M5" />} />
+                <Route path="/domain" element={<DomainExplore />} />
                 <Route path="/portfolio" element={<Portfolio />} />
                 <Route path="/strategy" element={<Strategy />} />
                 <Route path="/overlap" element={<Overlap />} />

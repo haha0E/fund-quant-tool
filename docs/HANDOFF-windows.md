@@ -1,11 +1,11 @@
-# 会话交接文档（2026-10-28 深夜 · M4 完成 → M5 待开工）
+# 会话交接文档（2026-10-29 · M5 完成 → M6 总验收待开工）
 
 > 用途：新会话开工前先读本文 + `ROADMAP.md`（末尾进度行）+ `docs/实现方案-fund-workbench.md`（§1 架构 / §3 库表 / §5 里程碑 / §6 口径）+ `docs/复查报告-重仓基金-20261020.md` §四（口径反转教训）。
 > 历史：本文原为 2026-10-14 Windows 迁移交接（uv/GitHub/数据源复测均已完成，详见 ROADMAP 10-14 行），现整体重写为 M2→M3 交接。
 
 ## 项目当前状态
 
-- **进度**：M1 ✅ → M2 ✅ → M3 ✅（2026-10-28 晚）→ **M4 ✅（2026-10-28 深夜，29/29 测试绿 + verify_m4 7/7 + 浏览器端到端）** → M5 领域探索+快照+任务计划待开工。M3 后追加修复：首屏白屏（入池弹窗 watch undefined + 无 ErrorBoundary，aca3627）、预检标签推断（e976a1d）。
+- **进度**：M1 ✅ → M2 ✅ → M3 ✅ → M4 ✅（10-28）→ **M5 ✅（2026-10-29，34/34 测试绿 + verify_m5 7/7 + 浏览器端到端）** → M6 总验收+打磨待开工。
 - **池状态**：持仓 4（000390/004195/012920/022364）+ 研究池 8（021030/006113/001411/110005/020972/018344/000960/**011369**——2026-10-28 已执行二选一卖出、转研究池作克隆对照，标签"AI算力,克隆对照"）。
 - **投资侧待办**：卖出 011369 的资金去向未定（创新药定投 021030/006113 仅新钱，或暂持货币）；下次双周核查 **2026-11-11**。
 - **运行时**：任务计划 FQT_Web_Server 常驻 `0.0.0.0:8000`（防火墙「FQT 8000 tailnet only」仅放行 100.64.0.0/10，已实测）；手机访问 `http://100.124.213.38:8000/`；前端 dist 由 FastAPI 同源托管。
@@ -31,6 +31,7 @@
 5. **Windows curl 传中文 JSON body 必坏**（GBK 管道）→ 一律用 python urllib/json 发请求。
 6. **git push**：HTTPS 凭据已失效，用 SSH 一次性 URL `git push git@github.com:haha0E/fund-quant-tool.git main:main`。
 7. **部署节律**：改前端 = `npm run build` 即生效（FileResponse 按请求读盘，无需重启）；改后端 = `MSYS_NO_PATHCONV=1 schtasks /end /tn FQT_Web_Server` → `/run`；本地调试另起 `uvicorn app.main:app --port 8010` 不碰生产。
+11. 定时任务三件：FQT_Web_Server（常驻服务，只 end/run）、FQT_Weekly_Refresh（周一 09:30 全量刷）、FQT_Daily_Snapshot（每日 10:00 快照导入）；后两者脚本 scripts/cron_call.py，重装跑 setup_m5_tasks.ps1（幂等）。
 8. 全量首刷约 2 分钟（反爬 sleep 为主），单基金 15-30 秒；重复调用走当日缓存不外呼；基准指数 scope=index 单独刷（两个指数各一次外呼）。
 9. **手机写操作（入池/刷新/保存）需 token**：电脑打开 data/auth_token.txt 复制，手机首次操作弹窗粘贴一次（存 localStorage）；GET 不需要。
 10. M2 的「指标卡四数字/YTD 锚点」等验收点全部不变；000390 YTD +14.55%（10-27）仍为锚点。
@@ -69,13 +70,23 @@
 
 **穿透页正确姿势**：勾基金 → 穿透分析 → 首次个股指标列空 → 点「刷新个股数据」（约 12-25 秒）→ 重跑穿透即全指标。
 
-## 下一步：M5 领域探索 + 快照链路 + 任务计划（~12 月上中）
+## M5 交付物地图（2026-10-29）
 
-验收原文（§5 不降标准）：**医药领域入池 000960 跑通；快照幂等导入**。
-- 领域探索页：GET /api/explore/domains + /api/explore/{domain}（API 草案已定）——数据复用 fund.domain_tags + 名录/指标；入池走已有 preflight。
-- 快照链路：data/snapshot/ a 档幂等导入（实现方案 §1 有设计）。
-- 任务计划程序：定时调 POST /api/refresh（scope=all 含基准；stocks 视穿透页使用频率决定是否纳入）。
-- M6 总验收 ~12 月下：重做 2026-10-13 诊断 + 3 基金抽验 ≤0.5pct（PRD 验收①②）。
+| 模块 | 文件 | 要点 |
+|---|---|---|
+| 领域探索 | `routers/explore.py`、`akshare_client.fetch_fund_rank`、`pages/DomainExplore.tsx` | 降级序：快照映射 > 池内标签 > 排行关键词粗筛（20670 只当日缓存）；POST /pool 入研究池自动打标签+单刷；排行收益仅粗筛排序（数据商口径，界面明示） |
+| 快照链路 | `ingest/snapshot_import.py`、`routers/snapshot.py`、db 两表（domain_map/snapshot_log） | data/snapshot/YYYY-MM-DD/domain_map.csv → UPSERT + 记账，幂等双保险（重复导入行数恒定）；POST /api/snapshot/import + GET status |
+| 任务计划 | `scripts/cron_call.py`、`scripts/setup_m5_tasks.ps1` | FQT_Weekly_Refresh 周一 09:30 全量刷（含基准）；FQT_Daily_Snapshot 每日 10:00；均以 .venv python 调 cron_call.py（urllib 带 token，不踩 curl GBK） |
+| 测试 | `tests/test_snapshot_and_explore.py` 5 用例（34/34 绿）+ `scripts/verify_m5.py` | 验收 7/7：医药 60 候选/000960 已在池/入池链路走通/快照幂等 |
+
+**领域页正确姿势**：侧栏「研究 → 领域探索」→ 点领域 chips → 候选表（近1年降序，池内标徽标）→「入研究池」自动单刷约 15-30 秒。快照目录由外部 ZCode 批次产出（或手工放 domain_map.csv），每日 10 点自动导入，也可 POST /api/snapshot/import 手动。
+
+## 下一步：M6 总验收 + 打磨（~12 月下）
+
+验收原文（§5 不降标准）：**重做 2026-10-13 诊断（PRD 验收①）+ 3 基金抽验 ≤0.5pct（验收②）**。
+- 验收①：完整重演诊断场景——组合评估三件套 + 穿透表新易盛/中际旭创排前列超标标色 + 领域探索医药入池（M5 已单项验证，M6 串成完整用户流）。
+- 验收②：3 基金抽验——库内自算指标 vs Wind/官方 App 手抄 ≤0.5pct（000390 CSV 基准已有，另抽 2 只）。
+- 打磨项：仪表盘页（/dashboard 仍 Placeholder，持仓总览一眼看）；性能/文案复查；ROADMAP 阶段 1 收口。
 
 ## 红线（沿用，不因里程碑变化）
 

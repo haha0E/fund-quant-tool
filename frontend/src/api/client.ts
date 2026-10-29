@@ -211,6 +211,26 @@ export interface OverlapResult {
   data_gaps: string[]
 }
 
+// ---- M5：领域探索 ----
+
+export interface ExploreDomain {
+  domain: string
+  snapshot_funds: number
+  pool_funds: number
+}
+
+export interface ExploreCandidate {
+  code: string
+  name: string
+  source: '快照映射' | '池内标签' | '排行粗筛' | string
+  in_pool: boolean
+  ret_1m: number | null
+  ret_3m: number | null
+  ret_6m: number | null
+  ret_1y: number | null
+  ret_ytd: number | null
+}
+
 export const api = {
   listFunds: (pool?: string) =>
     request<Fund[]>(`/api/funds${pool ? `?pool=${pool}` : ''}`),
@@ -247,6 +267,17 @@ export const api = {
     request<OverlapResult>(`/api/portfolio/overlap?codes=${codes.join(',')}${weights ? `&w=${weights.join(',')}` : ''}`),
   refreshStocks: (symbols: string[]) =>
     request<RefreshSummary>(`/api/refresh?scope=stocks&symbols=${symbols.join(',')}`, { method: 'POST' }),
+  // M5：领域探索 + 快照
+  listExploreDomains: () =>
+    request<ExploreDomain[]>('/api/explore/domains'),
+  exploreDomain: (domain: string) =>
+    request<{ domain: string; candidates: ExploreCandidate[]; warning?: string }>(
+      `/api/explore/${encodeURIComponent(domain)}`),
+  addExplorePool: (code: string, domainTags: string[]) =>
+    request<Fund>('/api/explore/pool', { method: 'POST', body: JSON.stringify({ code, domain_tags: domainTags }) }),
+  importSnapshot: () =>
+    request<{ imported: { file: string; rows: number }[]; skipped: string[]; errors: string[]; note?: string }>(
+      '/api/snapshot/import', { method: 'POST' }),
   authStatus: () =>
     request<{ enabled: boolean; hint: string }>('/api/auth/status'),
 }

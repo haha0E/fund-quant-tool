@@ -113,6 +113,24 @@ CREATE TABLE IF NOT EXISTS stock_valuation (
     pb      REAL,
     PRIMARY KEY (symbol, date)
 );
+
+-- M5 领域探索：ZCode 周更领域映射（a 档快照主数据，探索页优先于关键词粗筛）
+CREATE TABLE IF NOT EXISTS domain_map (
+    domain     TEXT NOT NULL,             -- 领域名，如 医药
+    fund_code  TEXT NOT NULL,
+    fund_name  TEXT,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    PRIMARY KEY (domain, fund_code)
+);
+
+-- M5 快照导入审计：按 (日期目录, 文件名) 记账，重复导入直接跳过（幂等）
+CREATE TABLE IF NOT EXISTS snapshot_log (
+    snapshot_date TEXT NOT NULL,          -- 快照目录名 YYYY-MM-DD
+    filename      TEXT NOT NULL,
+    rows          INTEGER NOT NULL DEFAULT 0,
+    imported_at   TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    PRIMARY KEY (snapshot_date, filename)
+);
 """
 
 # CREATE TABLE IF NOT EXISTS 不会给既有表补列——轻量迁移在此幂等执行
