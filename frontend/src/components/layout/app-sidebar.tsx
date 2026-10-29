@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { NAV_GROUPS } from '@/lib/nav'
 
+
 const SIDEBAR_KEY = 'fw-sidebar'
 
 function loadCollapsed(): boolean {
@@ -15,6 +16,16 @@ function loadCollapsed(): boolean {
 // 数据源与净值截止时间：M2 摄取层接入后在底部展示（缺省隐藏）。
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(loadCollapsed)
+  const [navLatest, setNavLatest] = useState<string | null>(null)
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const r = await fetch('/api/health')
+        if (r.ok) setNavLatest((await r.json()).nav_latest)
+      } catch { /* 侧栏装饰信息，失败静默 */ }
+    })()
+  }, [])
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_KEY, collapsed ? 'collapsed' : 'expanded')
@@ -68,7 +79,13 @@ export function AppSidebar() {
       </nav>
 
       <div className="flex flex-col gap-1 p-2">
-        {/* 数据源 · 净值截至：M2 摄取层接入后在此展示 */}
+        {/* 数据源 · 净值截至（M6）：health 带 nav_latest */}
+        {!collapsed && (
+          <div className="px-2.5 pb-1 text-[10.5px] leading-relaxed text-muted-foreground max-md:hidden">
+            <div>数据源：akshare + 东财F10</div>
+            <div className="tabular-nums">净值截至 {navLatest ?? '…'}</div>
+          </div>
+        )}
         <Button
           variant="ghost"
           size="icon"

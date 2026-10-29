@@ -12,7 +12,7 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: '研究',
     items: [
-      { to: '/dashboard', label: '仪表盘', icon: LayoutDashboard, milestone: 'M5' },
+      { to: '/dashboard', label: '仪表盘', icon: LayoutDashboard },
       { to: '/library', label: '画像库', icon: Library },
       { to: '/strategy', label: '策略', icon: BookOpen },
       { to: '/domain', label: '领域探索', icon: Compass },

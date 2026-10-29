@@ -231,6 +231,24 @@ export interface ExploreCandidate {
   ret_ytd: number | null
 }
 
+// ---- M6：仪表盘 ----
+
+export interface DashboardData {
+  as_of: string
+  holdings: {
+    code: string; name: string; domain_tags: string[]
+    shares: number | null; market_value: number | null; value_as_of: string | null
+    nav_as_of: string | null; holding_lag_days: number | null
+    ret_ytd: number | null; ret_1y: number | null; max_dd: number | null; sharpe: number | null
+  }[]
+  total_market_value: number | null
+  weight_mode: string
+  portfolio_metric: FundMetric | null
+  theme_exposure: { theme: string; value: number; pct: number | null }[]
+  theme_limit: number
+  no_nav_funds: number
+}
+
 export const api = {
   listFunds: (pool?: string) =>
     request<Fund[]>(`/api/funds${pool ? `?pool=${pool}` : ''}`),
@@ -278,6 +296,9 @@ export const api = {
   importSnapshot: () =>
     request<{ imported: { file: string; rows: number }[]; skipped: string[]; errors: string[]; note?: string }>(
       '/api/snapshot/import', { method: 'POST' }),
+  // M6：仪表盘
+  getDashboard: () =>
+    request<DashboardData>('/api/dashboard'),
   authStatus: () =>
     request<{ enabled: boolean; hint: string }>('/api/auth/status'),
 }

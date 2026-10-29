@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from .config import REPO_ROOT, get_auth_token
 from .db import init_db
-from .routers import explore, funds, portfolio, refresh, snapshot, strategy
+from .routers import dashboard, explore, funds, portfolio, refresh, snapshot, strategy
 
 # 生产态构建产物（npm run build 产出；dist 不入 git，未构建时仅提供 API）
 DIST_DIR = REPO_ROOT / "frontend" / "dist"
@@ -40,6 +40,7 @@ app.include_router(portfolio.router)
 app.include_router(strategy.router)
 app.include_router(explore.router)
 app.include_router(snapshot.router)
+app.include_router(dashboard.router)
 
 
 @app.middleware("http")
@@ -71,7 +72,9 @@ def health():
 
     with conn() as c:
         count = c.execute("SELECT COUNT(*) FROM fund").fetchone()[0]
-    return {"status": "ok", "db_path": str(DB_PATH), "fund_count": count}
+        nav_latest = c.execute("SELECT MAX(date) FROM fund_nav").fetchone()[0]
+    return {"status": "ok", "db_path": str(DB_PATH), "fund_count": count,
+            "nav_latest": nav_latest}
 
 
 # ---- 生产态静态托管（实现方案 §7：FastAPI 直接托管 frontend/dist，同源免 CORS 放宽）----
