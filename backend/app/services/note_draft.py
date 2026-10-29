@@ -58,7 +58,7 @@ def build_note_draft(code: str) -> str:
             "SELECT * FROM fund_metric WHERE code = ? ORDER BY as_of DESC LIMIT 1",
             (code,)).fetchone()
         nav_rows = c.execute(
-            "SELECT date, dividend FROM fund_nav WHERE code = ? ORDER BY date",
+            "SELECT date, dividend, unit_nav FROM fund_nav WHERE code = ? ORDER BY date",
             (code,)).fetchall()
         position = c.execute(
             "SELECT * FROM my_position WHERE code = ?", (code,)).fetchone()
@@ -97,8 +97,13 @@ def build_note_draft(code: str) -> str:
 
     pos_line = ""
     if position and position["shares"]:
-        pos_line = (f"\n## 持仓\n- 份额 {position['shares']:,.2f}，市值快照 "
-                    f"{position['market_value']:,.0f} 元 @ {position['value_as_of'] or '—'}\n")
+        last = nav_rows[-1] if nav_rows else None  # 实时口径：份额 × 最新单位净值
+        if last:
+            pos_line = (f"\n## 持仓\n- 份额 {position['shares']:,.2f}，市值 "
+                        f"{position['shares'] * last['unit_nav']:,.0f} 元"
+                        f" @ 最新净值 {last['date']}\n")
+        else:
+            pos_line = f"\n## 持仓\n- 份额 {position['shares']:,.2f}，净值未入库，市值待算\n"
 
     name = fund["name"] or p.get("name") or code
     lines = [

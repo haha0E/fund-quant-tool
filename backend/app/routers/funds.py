@@ -118,6 +118,18 @@ def fund_detail(code: str):
         position = c.execute(
             "SELECT * FROM my_position WHERE code = ?", (code,)).fetchone()
 
+    # 持仓市值实时口径：份额 × 最新单位净值（库内 my_position 快照仅作录入审计）
+    position_out = None
+    if position:
+        last_nav = nav_rows[-1] if nav_rows else None
+        position_out = PositionOut(
+            code=position["code"], shares=position["shares"],
+            market_value=round(position["shares"] * last_nav["unit_nav"], 2)
+                if position["shares"] and last_nav else None,
+            value_as_of=last_nav["date"]
+                if position["shares"] and last_nav else None,
+            updated_at=position["updated_at"])
+
     gaps, integrity_bad = _collect_gaps(code)
     profile_dict = dict(profile) if profile else None
     metric_out = None
@@ -141,7 +153,7 @@ def fund_detail(code: str):
         holding_periods=periods,
         note=note["content"] if note else "",
         note_updated_at=note["updated_at"] if note else None,
-        position=PositionOut(**dict(position)) if position else None,
+        position=position_out,
         data_gaps=gaps,
     )
     return detail
@@ -278,7 +290,8 @@ def preflight(code: str):
 
 @router.put("/{code}/position", response_model=PositionOut)
 def save_position(code: str, pos: PositionIn):
-    """持仓份额录入（M3）。市值快照 = 份额 × 最新单位净值（自动算，不手输）。"""
+    """持仓份额录入（M3）。份额是唯一事实源；市值显示口径 = 份额 × 最新单位净值
+    （实时算，见详情/仪表盘），此处存的快照仅作录入时点审计记录，不再用于显示。"""
     with conn() as c:
         if not c.execute("SELECT 1 FROM fund WHERE code = ?", (code,)).fetchone():
             raise HTTPException(404, f"基金 {code} 不在池中")

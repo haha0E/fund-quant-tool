@@ -1,8 +1,10 @@
 """仪表盘接口（M6，PRD FR4 首页）：持仓总览——收益/风险一眼看 + 数据新鲜度。
 
-口径：组合加权指标按 my_position 份额×最新净值权重（无持仓份额时等权，
-weight_mode 标注）；主题暴露按 domain_tags 聚合市值占比（策略页「单一主题
-≤60%」红线的日常检查位）。
+口径：市值为实时派生值——my_position 份额 × fund_nav 最新已入库单位净值
+（录入时的快照仅作审计记录，不用于显示）；各基金净值日期不齐（QDII 滞后
+一天），行内 nav_as_of 标注。组合加权指标按同口径份额×最新净值权重
+（无持仓份额时等权，weight_mode 标注）；主题暴露按 domain_tags 聚合
+实时市值占比（策略页「单一主题 ≤60%」红线的日常检查位）。
 """
 from __future__ import annotations
 
@@ -21,8 +23,11 @@ router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 def dashboard():
     with conn() as c:
         holdings = c.execute(
-            """SELECT f.code, f.name, f.domain_tags,
-                      p.shares, p.market_value, p.value_as_of,
+            """SELECT f.code, f.name, f.domain_tags, p.shares,
+                      (SELECT n.unit_nav FROM fund_nav n WHERE n.code = f.code
+                         ORDER BY n.date DESC LIMIT 1) AS last_nav,
+                      (SELECT n.date FROM fund_nav n WHERE n.code = f.code
+                         ORDER BY n.date DESC LIMIT 1) AS nav_as_of,
                       (SELECT as_of FROM fund_metric m WHERE m.code = f.code
                         ORDER BY as_of DESC LIMIT 1) AS metric_as_of
                FROM fund f LEFT JOIN my_position p ON p.code = f.code
@@ -30,8 +35,6 @@ def dashboard():
         metrics = {r["code"]: r for r in c.execute(
             "SELECT * FROM fund_metric WHERE as_of ="
             " (SELECT MAX(as_of) FROM fund_metric)")}
-        nav_latest = dict(c.execute(
-            "SELECT code, MAX(date) FROM fund_nav GROUP BY code").fetchall())
         h_latest = c.execute(
             "SELECT code, MAX(report_date) AS rd FROM fund_holding GROUP BY code").fetchall()
         gaps_count = c.execute(
@@ -48,17 +51,19 @@ def dashboard():
         rd = next((r["rd"] for r in h_latest if r["code"] == h["code"]), None)
         if rd:
             lag = (today - datetime.strptime(rd, "%Y-%m-%d").date()).days
-        mv = h["market_value"] or 0.0
-        total_value += mv
-        for t in (h["domain_tags"] or "").split(","):
-            if t.strip():
-                theme_value[t.strip()] = theme_value.get(t.strip(), 0.0) + mv
+        mv = round(h["shares"] * h["last_nav"], 2) \
+            if h["shares"] and h["last_nav"] else None
+        if mv is not None:
+            total_value += mv
+            for t in (h["domain_tags"] or "").split(","):
+                if t.strip():
+                    theme_value[t.strip()] = theme_value.get(t.strip(), 0.0) + mv
         rows.append({
             "code": h["code"], "name": h["name"] or h["code"],
             "domain_tags": [t for t in (h["domain_tags"] or "").split(",") if t],
-            "shares": h["shares"], "market_value": h["market_value"],
-            "value_as_of": h["value_as_of"],
-            "nav_as_of": nav_latest.get(h["code"]),
+            "shares": h["shares"], "market_value": mv,
+            "value_as_of": h["nav_as_of"] if mv is not None else None,
+            "nav_as_of": h["nav_as_of"],
             "holding_lag_days": lag,
             "ret_ytd": m["ret_ytd"] if m else None,
             "ret_1y": m["ret_1y"] if m else None,

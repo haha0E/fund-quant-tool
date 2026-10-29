@@ -282,7 +282,7 @@ export default function FundDetail() {
     setSavingShares(true)
     try {
       const pos = await api.savePosition(code, shares)
-      toast.success(`持仓已保存：市值快照 ${pos.market_value?.toLocaleString()} 元 @ ${pos.value_as_of}`)
+      toast.success(`持仓已保存：市值 ${pos.market_value?.toLocaleString()} 元 @ ${pos.value_as_of} 净值（此后随净值刷新自动更新）`)
       await reload()
     } catch (e) {
       toast.error((e as Error).message)
@@ -496,15 +496,15 @@ export default function FundDetail() {
             )}
             {detail.position?.market_value != null && (
               <div className="text-[13px] text-muted-foreground">
-                市值快照 <span className="font-medium tabular-nums text-foreground">
+                市值 <span className="font-medium tabular-nums text-foreground">
                   {detail.position.market_value.toLocaleString()} 元
                 </span>
-                <span className="ml-1 text-[11px]">（份额 × {detail.position.value_as_of} 单位净值，自动算）</span>
+                <span className="ml-1 text-[11px]">（份额 × {detail.position.value_as_of} 单位净值，随净值刷新自动更新）</span>
               </div>
             )}
           </div>
           <p className="text-[11px] text-muted-foreground">
-            份额 × 最新单位净值 = 市值快照（保存时自动重算）；组合评估页「持仓份额」权重模式即按此占比。
+            市值 = 份额 × 最新单位净值（实时显示，净值刷新后自动跟上）；组合评估页「持仓份额」权重模式即按此占比。
           </p>
         </Card>
       )}
