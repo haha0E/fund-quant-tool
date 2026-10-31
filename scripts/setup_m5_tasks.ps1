@@ -1,9 +1,16 @@
-# M5 定时任务注册（幂等，重复运行覆盖同名任务）
-# 管理员 PowerShell：powershell -NoProfile -ExecutionPolicy Bypass -File scripts\setup_m5_tasks.ps1
+# M5 scheduled task registration (idempotent: re-run overwrites same-name tasks)
+# Admin PowerShell: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\setup_m5_tasks.ps1
 #
-# 产出两个任务计划（不触碰 FQT_Web_Server——红线：该任务只 end/run 不改配置）：
-#   1. FQT_Weekly_Refresh —— 每周一 09:30 全量刷新（净值/档案/持仓/指标/基准指数）
-#   2. FQT_Daily_Snapshot —— 每日 10:00 快照目录检测导入（幂等）
+# NOTE (2026-10-31): comments in this file are ASCII-only on purpose.
+# PS 5.1 reads UTF-8-without-BOM scripts as GBK; a Chinese comment byte sequence
+# swallowed the next line ($weekly = ...), so FQT_Weekly_Refresh silently never
+# registered while the script still printed "done". Null guards + post-checks
+# below make that failure mode impossible to miss again.
+#
+# Registers two scheduled tasks (never touches FQT_Web_Server -- red line:
+# that task is only end/run, never reconfigured):
+#   1. FQT_Weekly_Refresh -- Monday 09:30 full refresh (nav/profile/holdings/metrics/benchmark)
+#   2. FQT_Daily_Snapshot -- daily 10:00 snapshot dir detection & import (idempotent)
 $ErrorActionPreference = "Stop"
 $repo = "D:\For_Coding\MyProjects\fund-quant-tool"
 $py = "$repo\.venv\Scripts\python.exe"
@@ -15,9 +22,10 @@ $snapshotAction = New-ScheduledTaskAction `
     -Execute $py -Argument "$repo\scripts\cron_call.py /api/snapshot/import POST" `
     -WorkingDirectory $repo
 
-# 周一 09:30（双周核查自动化外的数据保鲜）
 $weekly = New-ScheduledTaskTrigger -Weekly -At "09:30" -DaysOfWeek Monday
 $daily = New-ScheduledTaskTrigger -Daily -At "10:00"
+if (-not $weekly) { throw "weekly trigger is null" }
+if (-not $daily) { throw "daily trigger is null" }
 
 $settings = New-ScheduledTaskSettingsSet `
     -ExecutionTimeLimit (New-TimeSpan -Hours 1) `
@@ -29,4 +37,11 @@ Register-ScheduledTask -TaskName "FQT_Weekly_Refresh" -Action $refreshAction `
 Register-ScheduledTask -TaskName "FQT_Daily_Snapshot" -Action $snapshotAction `
     -Trigger $daily -Settings $settings -Force | Out-Null
 
-Write-Host "done: FQT_Weekly_Refresh（周一 09:30）+ FQT_Daily_Snapshot（每日 10:00）已注册"
+# Post-check: fail loudly if either task is missing (no false "done").
+foreach ($name in @("FQT_Weekly_Refresh", "FQT_Daily_Snapshot")) {
+    if (-not (Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue)) {
+        throw "post-check failed: $name not registered"
+    }
+}
+
+Write-Host "done: FQT_Weekly_Refresh (Mon 09:30) + FQT_Daily_Snapshot (daily 10:00) registered and verified"
