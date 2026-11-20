@@ -27,10 +27,16 @@ $daily = New-ScheduledTaskTrigger -Daily -At "10:00"
 if (-not $weekly) { throw "weekly trigger is null" }
 if (-not $daily) { throw "daily trigger is null" }
 
+# 2026-11-20 (stage-A hardening): WakeToRun wakes the box at 09:30 Mon so the
+# task does not depend on someone logging in first; retries widened 2x5min ->
+# 3x10min (root cause of the 3-week streak was late catch-up runs hitting a
+# cold network/service window). Failure alerting itself lives in cron_call.py
+# (Bark on non-zero exit), not here.
 $settings = New-ScheduledTaskSettingsSet `
     -ExecutionTimeLimit (New-TimeSpan -Hours 1) `
-    -RestartCount 2 -RestartInterval (New-TimeSpan -Minutes 5) `
-    -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+    -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 10) `
+    -StartWhenAvailable -WakeToRun `
+    -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
 
 Register-ScheduledTask -TaskName "FQT_Weekly_Refresh" -Action $refreshAction `
     -Trigger $weekly -Settings $settings -Force | Out-Null

@@ -17,6 +17,8 @@ __pycache__/
 
 # 应用运行时数据（SQLite 库与导入中的快照不入库；data/notes 结论快照入库，可 git diff）
 data/*.db
+data/*.db-shm
+data/*.db-wal
 data/snapshot/
 # 摄取层当日磁盘缓存（反爬纪律产物，可随时删）
 data/cache/
@@ -24,6 +26,8 @@ data/cache/
 data/logs/
 # 写接口鉴权 token（凭据，绝不入库）
 data/auth_token.txt
+# Bark 推送 key（凭据，绝不入库）
+data/bark_key.txt
 # UI 验收截图（含真实持仓信息，本仓为公开仓，不入库）
 data/shots/
 

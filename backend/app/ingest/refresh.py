@@ -18,16 +18,19 @@ from ..db import conn
 from ..services.metrics import Series, compute_metrics, has_negative_diff_drift
 from . import source_map
 
-# M2 名单（docs/调查报告-重仓基金-20261017.md 附录定稿）：持仓 5 + 研究池 7
+# M2 名单（docs/调查报告-重仓基金-20261017.md 附录定稿）+ 2026-11-20 对齐：
+# 011369 已于 10-28 赎回、转 research 克隆对照；017894 为 10-29 领域页自入，
+# 补进权威名单，避免 seed=true 时把库翻回旧状态（持仓 4 + 研究池 9）。
 DEFAULT_POOL: list[tuple[str, str, str, str]] = [
     # (code, name, pool_type, domain_tags)
     ("022364", "永赢科技智选A", "holding", "AI算力"),
     ("000390", "华商优势行业混合A", "holding", "AI算力"),
-    ("011369", "华商均衡成长混合A", "holding", "AI算力"),
     ("004195", "招商中证1000指数增强C", "holding", "宽基"),
     ("012920", "易方达全球成长精选混合A", "holding", "QDII"),
+    ("011369", "华商均衡成长混合A", "research", "AI算力"),
     ("021030", "汇添富港股通创新药联接A", "research", "医药"),
     ("006113", "汇添富创新医药混合A", "research", "医药"),
+    ("017894", "", "research", "医药"),  # 汇添富纳斯达克生物科技联接，名字由名录接口补齐
     ("001411", "诺安创新驱动混合A", "research", "AI算力"),
     ("110005", "易方达积极成长混合", "research", "AI算力"),
     ("020972", "易方达中证机器人ETF联接A", "research", "机器人"),
@@ -45,7 +48,7 @@ _XQ_TO_COLUMN = {
 
 
 def seed_default_pool() -> dict:
-    """12 只名单入池（幂等权威写：名字/池别/标签以定稿名单为准，created_at 保留）。
+    """13 只名单入池（幂等权威写：名字/池别/标签以定稿名单为准，created_at 保留）。
 
     背景：库里可能有 M1 期手工测试行（如 000390 曾录为 research），
     名单来自调查报告附录 A 定稿，故对本 12 只做全字段对齐而非只补空。
